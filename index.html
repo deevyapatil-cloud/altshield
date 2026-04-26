@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AltShield — AI Fraud Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+/* ===== PASSWORD GATE ===== */
+#gate{
+  position:fixed;inset:0;z-index:9999;
+  background:#1c1a15;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+}
+#gate::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 65% 55% at 25% 30%,rgba(184,134,11,.18),transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 75%,rgba(26,64,128,.12),transparent 60%);
+  pointer-events:none;
+}
+.gate-box{
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;padding:40px 44px;
+  max-width:420px;width:100%;
+  position:relative;z-index:1;
+  text-align:center;
+}
+.gate-badge{
+  width:64px;height:64px;background:#b8860b;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:24px;font-weight:800;color:#fff;
+  margin:0 auto 22px;
+  box-shadow:0 8px 28px rgba(184,134,11,.4);
+}
+.gate-title{
+  font-family:'Playfair Display',serif;font-size:26px;font-weight:800;
+  color:#fff;letter-spacing:-.5px;margin-bottom:6px;
+}
+.gate-title em{font-style:italic;color:#b8860b;}
+.gate-sub{font-size:12px;color:rgba(255,255,255,.4);margin-bottom:28px;line-height:1.7;}
+.gate-label{
+  display:block;font-size:10px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(255,255,255,.35);
+  margin-bottom:8px;text-align:left;
+}
+.gate-input{
+  width:100%;background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:8px;padding:13px 16px;
+  color:#fff;font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:15px;letter-spacing:.06em;
+  outline:none;transition:border-color .2s;
+  text-align:center;margin-bottom:14px;
+}
+.gate-input:focus{border-color:rgba(184,134,11,.6);}
+.gate-input::placeholder{color:rgba(255,255,255,.2);letter-spacing:.04em;}
+.gate-btn{
+  width:100%;padding:13px;background:#b8860b;color:#fff;
+  border:none;border-radius:8px;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;
+  font-weight:700;cursor:pointer;transition:all .18s;
+  letter-spacing:.04em;margin-bottom:10px;
+}
+.gate-btn:hover{background:#a06000;transform:translateY(-1px);box-shadow:0 4px 16px rgba(184,134,11,.3);}
+.gate-btn:active{transform:translateY(0);}
+.gate-err{
+  font-size:12px;color:#e07070;
+  display:none;margin-bottom:10px;font-weight:500;
+}
+.gate-err.show{display:block;}
+.gate-hint{font-size:10px;color:rgba(255,255,255,.2);line-height:1.7;}
+.gate-hint a{color:rgba(184,134,11,.6);text-decoration:none;}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)}
+  60%{transform:translateX(-5px)}
+  80%{transform:translateX(5px)}
+}
+.shake{animation:shake .4s ease;}
+
+/* ===== MAIN APP STYLES ===== */
+:root{
+  --cream:#faf8f5;
+  --warm:#f4f0e8;
+  --paper:#edeae0;
+  --white:#ffffff;
+  --ink:#1c1a15;
+  --ink2:#3a3830;
+  --ink3:#6b6558;
+  --ink4:#9c9588;
+  --gold:#b8860b;
+  --gold-b:#c8960c;
+  --gold-l:rgba(184,134,11,.14);
+  --gold-ll:rgba(184,134,11,.06);
+  --red:#b83232;
+  --red-l:rgba(184,50,50,.1);
+  --amber:#a06000;
+  --amber-l:rgba(160,96,0,.1);
+  --green:#1a6b40;
+  --green-l:rgba(26,107,64,.1);
+  --blue:#1a4080;
+  --blue-l:rgba(26,64,128,.1);
+  --border:#ddd8ce;
+  --border2:#c8c2b4;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.04);
+  --shadow-md:0 2px 8px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.06);
+  --r:10px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--cream);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;min-height:100vh;}
+
+/* subtle warm texture */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 80% 60% at 5% 0%,rgba(184,134,11,.04),transparent 50%),
+             radial-gradient(ellipse 60% 50% at 95% 100%,rgba(26,64,128,.03),transparent 50%);
+  opacity:1;}
+
+/* ===== NAV ===== */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:58px;display:flex;align-items:center;padding:0 28px;
+  background:rgba(250,248,245,.96);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(16px);
+  gap:0;
+}
+.nav-logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:'Playfair Display',serif;font-weight:700;font-size:18px;
+  letter-spacing:-.3px;cursor:pointer;margin-right:32px;flex-shrink:0;
+  color:var(--ink);
+}
+.nav-badge{
+  width:30px;height:30px;background:var(--gold);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:13px;font-weight:700;
+  color:#fff;flex-shrink:0;
+}
+.nav-tabs{display:flex;gap:2px;flex:1;overflow-x:auto;}
+.nav-tab{
+  padding:6px 14px;border-radius:6px;cursor:pointer;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:500;
+  color:var(--ink3);border:none;background:transparent;transition:all .18s;
+  white-space:nowrap;flex-shrink:0;letter-spacing:.01em;
+}
+.nav-tab:hover{color:var(--ink);background:var(--warm);}
+.nav-tab.active{color:var(--gold);background:var(--gold-ll);border:1px solid rgba(184,134,11,.2);}
+.nav-right{display:flex;align-items:center;gap:10px;margin-left:auto;padding-left:20px;flex-shrink:0;}
+.live-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;background:var(--white);
+  border:1px solid var(--border);border-radius:20px;
+  font-size:11px;color:var(--ink3);font-weight:500;
+}
+.dot-live{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2.5s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ===== LAYOUT ===== */
+.app{padding:74px 28px 48px;max-width:1440px;margin:0 auto;position:relative;z-index:1;}
+.page{display:none;animation:fadeUp .28s ease;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== PAGE HERO ===== */
+.ph{
+  padding:30px 0 24px;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+  border-bottom:1px solid var(--border);margin-bottom:24px;
+}
+.ph-title{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;line-height:1.05;letter-spacing:-.5px;color:var(--ink);}
+.ph-title em{font-style:italic;color:var(--gold);}
+.ph-sub{color:var(--ink3);margin-top:6px;font-size:11px;letter-spacing:.04em;font-weight:500;}
+.ph-stats{display:flex;gap:28px;}
+.hs-val{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;letter-spacing:-.5px;line-height:1;}
+.hs-val.r{color:var(--red);}.hs-val.a{color:var(--amber);}.hs-val.g{color:var(--green);}
+.hs-lbl{font-size:10px;color:var(--ink3);margin-top:2px;font-weight:500;}
+
+/* ===== CARDS ===== */
+.card{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px;
+  box-shadow:var(--shadow);transition:box-shadow .2s,border-color .2s;
+}
+.card:hover{box-shadow:var(--shadow-md);border-color:var(--border2);}
+.ctitle{
+  font-size:10px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink3);
+  margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;
+}
+
+/* ===== GRIDS ===== */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px;}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;}
+.g12{display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:14px;}
+
+/* ===== METRIC CARDS ===== */
+.mc{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:var(--r);padding:18px;box-shadow:var(--shadow);
+}
+.mc-val{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px;line-height:1;}
+.mc-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);font-weight:600;}
+.mc-chg{font-size:11px;margin-top:5px;font-weight:500;}
+.up{color:var(--green);}.dn{color:var(--red);}
+
+/* ===== TAGS ===== */
+.tag{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:20px;
+  font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+}
+.tag.hi{background:var(--red-l);color:var(--red);border:1px solid rgba(184,50,50,.2);}
+.tag.md{background:var(--amber-l);color:var(--amber);border:1px solid rgba(160,96,0,.2);}
+.tag.lo{background:var(--green-l);color:var(--green);border:1px solid rgba(26,107,64,.2);}
+.tag.ac{background:var(--gold-l);color:var(--gold);border:1px solid rgba(184,134,11,.25);}
+
+/* ===== BUTTONS ===== */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 18px;border-radius:7px;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;
+  cursor:pointer;border:none;transition:all .18s;
+}
+.btn-p{background:var(--gold);color:#fff;box-shadow:0 2px 8px rgba(184,134,11,.25);}
+.btn-p:hover{background:var(--amber);transform:translateY(-1px);box-shadow:0 4px 14px rgba(184,134,11,.3);}
+.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-g{background:var(--white);border:1px solid var(--border);color:var(--ink3);}
+.btn-g:hover{border-color:var(--border2);color:var(--ink);background:var(--warm);}
+.btn-d{background:var(--red-l);border:1px solid rgba(184,50,50,.2);color:var(--red);}
+.btn-d:hover{background:rgba(184,50,50,.15);}
+
+/* ===== INPUTS ===== */
+.ifield{
+  background:var(--warm);border:1px solid var(--border);
+  border-radius:7px;padding:10px 14px;
+  color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;
+  outline:none;transition:border-color .2s,box-shadow .2s;width:100%;
+}
+.ifield:focus{border-color:var(--gold-b);box-shadow:0 0 0 3px rgba(184,134,11,.1);}
+select.ifield option{background:var(--white);}
+textarea.ifield{resize:vertical;min-height:90px;line-height:1.65;}
+.ilbl{font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:5px;display:block;}
+.fg{margin-bottom:14px;}
+
+/* ===== RISK BARS ===== */
+.rbw{display:flex;flex-direction:column;gap:11px;}
+.rb{display:flex;flex-direction:column;gap:4px;}
+.rb-hd{display:flex;justify-content:space-between;font-size:11px;font-weight:500;}
+.rb-lbl{color:var(--ink3);}
+.rb-track{height:5px;background:var(--paper);border-radius:3px;overflow:hidden;}
+.rb-fill{height:100%;border-radius:3px;transition:width .8s ease;}
+
+/* ===== SCORE RING ===== */
+.ring-wrap{position:relative;width:120px;height:120px;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:30px;font-weight:700;color:var(--ink);}
+.ring-sm{font-size:10px;color:var(--ink3);margin-top:-3px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;}
+.ring-center{display:flex;flex-direction:column;align-items:center;padding:8px 0;}
+
+/* ===== ALERTS ===== */
+.al-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px 14px;background:var(--warm);
+  border-radius:8px;border-left:3px solid;
+  cursor:pointer;transition:background .15s;margin-bottom:8px;
+}
+.al-item:last-child{margin-bottom:0;}
+.al-item:hover{background:var(--paper);}
+.al-item.c{border-color:var(--red);}.al-item.w{border-color:var(--amber);}.al-item.i{border-color:var(--blue);}
+.al-body{flex:1;}
+.al-t{font-size:12px;color:var(--ink);margin-bottom:3px;font-weight:500;}
+.al-m{font-size:10px;color:var(--ink3);}
+.al-time{margin-left:auto;font-size:10px;color:var(--ink4);white-space:nowrap;flex-shrink:0;font-weight:500;}
+
+/* ===== TABLE ===== */
+.ptbl{width:100%;border-collapse:collapse;}
+.ptbl th{text-align:left;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700;padding:0 10px 12px;border-bottom:2px solid var(--border);}
+.ptbl td{padding:12px 10px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle;}
+.ptbl tr:last-child td{border-bottom:none;}
+.ptbl tr:hover td{background:var(--warm);}
+.spill{display:inline-block;padding:3px 9px;border-radius:5px;font-size:11px;font-weight:600;}
+.spill.rh{background:var(--red-l);color:var(--red);}.spill.rm{background:var(--amber-l);color:var(--amber);}.spill.rl{background:var(--green-l);color:var(--green);}
+
+/* ===== TIMELINE ===== */
+.tl{position:relative;padding-left:18px;}
+.tl::before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--border);}
+.tl-item{position:relative;padding:0 0 16px 14px;}
+.tl-item::before{content:'';position:absolute;left:-6px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--border);border:2px solid var(--cream);}
+.tl-item.up::before{background:var(--gold);}.tl-item.wn::before{background:var(--amber);}.tl-item.ps::before{background:var(--ink4);}
+.tl-date{font-size:10px;color:var(--ink3);margin-bottom:2px;font-weight:600;}
+.tl-ev{font-size:12px;color:var(--ink);font-weight:500;}
+.tl-amt{font-size:11px;color:var(--ink3);margin-top:2px;}
+
+/* ===== WATCHLIST ===== */
+.wi{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--border);}
+.wi:last-child{border-bottom:none;}
+.wa{width:34px;height:34px;background:var(--warm);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:12px;font-weight:700;color:var(--ink2);flex-shrink:0;}
+.wb-d{flex:1;}
+.wn-name{font-size:12px;color:var(--ink);font-weight:500;}
+.wn-type{font-size:10px;color:var(--ink3);}
+
+/* ===== FEED ===== */
+.feed-item{
+  padding:12px 14px;background:var(--warm);border-radius:8px;
+  cursor:pointer;transition:background .15s;
+  border-left:3px solid transparent;margin-bottom:6px;
+}
+.feed-item:last-child{margin-bottom:0;}
+.feed-item:hover{background:var(--paper);}
+.feed-item.fc{border-left-color:var(--red);}.feed-item.fw{border-left-color:var(--amber);}.feed-item.fi{border-left-color:var(--blue);}
+.feed-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.feed-cat{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--white);}
+.feed-cat.c{color:var(--red);}
+.feed-cat.w{color:var(--amber);}
+.feed-cat.i{color:var(--blue);}
+.feed-age{margin-left:auto;font-size:10px;color:var(--ink4);}
+.feed-title{font-size:12px;color:var(--ink);line-height:1.5;margin-bottom:3px;font-weight:500;}
+.feed-meta{font-size:10px;color:var(--ink3);}
+
+/* ===== AI ANALYZER ===== */
+.ai-layout{display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start;}
+
+/* API KEY BAR */
+.api-bar{
+  background:linear-gradient(135deg,rgba(184,134,11,.08),rgba(184,134,11,.04));
+  border:1px solid rgba(184,134,11,.25);border-radius:var(--r);
+  padding:14px 18px;margin-bottom:16px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.api-bar label{font-size:12px;font-weight:600;color:var(--amber);flex-shrink:0;}
+.api-bar .ifield{flex:1;min-width:240px;max-width:400px;font-size:12px;background:#fff;}
+#key-status{font-size:11px;color:var(--ink3);font-weight:500;}
+.api-bar a{font-size:11px;color:var(--gold);text-decoration:none;font-weight:600;}
+.api-bar a:hover{text-decoration:underline;}
+
+/* AI TABS */
+.ai-tabs{
+  display:flex;gap:3px;background:var(--warm);
+  border:1px solid var(--border);border-radius:9px;
+  padding:4px;margin-bottom:16px;
+}
+.ai-tab{
+  flex:1;padding:8px 12px;border-radius:6px;border:none;
+  background:transparent;color:var(--ink3);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .18s;
+}
+.ai-tab.active{background:var(--white);color:var(--gold);font-weight:600;box-shadow:var(--shadow);}
+.ai-tab:hover:not(.active){color:var(--ink);background:rgba(255,255,255,.5);}
+.ai-pane{display:none;}.ai-pane.active{display:block;}
+
+/* PRESETS */
+.preset-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.pb{
+  padding:5px 12px;border-radius:20px;
+  background:var(--white);border:1px solid var(--border);color:var(--ink3);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:500;
+  cursor:pointer;transition:all .15s;
+}
+.pb:hover{border-color:var(--gold-b);color:var(--gold);background:var(--gold-ll);}
+
+/* RESULT PANEL */
+.rp{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:var(--r);min-height:520px;
+  display:flex;flex-direction:column;
+  box-shadow:var(--shadow);transition:border-color .3s,box-shadow .3s;
+  overflow:hidden;
+}
+.rp.active{border-color:var(--gold-b);box-shadow:0 0 0 3px rgba(184,134,11,.1),var(--shadow-md);}
+.rp-head{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--warm);
+}
+.rp-lbl{
+  font-size:11px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink3);
+  display:flex;align-items:center;gap:8px;
+}
+.thinking{display:none;align-items:center;gap:6px;font-size:11px;color:var(--gold);font-weight:500;}
+.thinking.on{display:flex;}
+.tdots{display:flex;gap:3px;}
+.tdot{width:4px;height:4px;border-radius:50%;background:var(--gold);animation:tb 1.2s ease-in-out infinite;}
+.tdot:nth-child(2){animation-delay:.2s;}.tdot:nth-child(3){animation-delay:.4s;}
+@keyframes tb{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-4px);opacity:1}}
+.rp-body{padding:20px;flex:1;overflow-y:auto;font-size:13px;line-height:1.8;color:var(--ink);}
+.rp-actions{
+  padding:12px 16px;border-top:1px solid var(--border);
+  background:var(--warm);display:none;gap:8px;flex-wrap:wrap;
+}
+.rp-actions.on{display:flex;}
+
+/* EMPTY STATE */
+.ai-empty{
+  height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  color:var(--ink4);gap:10px;text-align:center;padding:40px;
+}
+.ai-empty-icon{font-size:36px;margin-bottom:4px;}
+.ai-empty-t{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink3);}
+.ai-empty-s{font-size:12px;color:var(--ink4);line-height:1.75;}
+
+/* AI RESULT HTML STYLES */
+.rp-body h2{
+  font-family:'Playfair Display',serif;font-size:15px;font-weight:700;
+  color:var(--gold);margin:20px 0 10px;
+  padding-bottom:6px;border-bottom:1px solid var(--border);
+}
+.rp-body h2:first-child{margin-top:0;}
+.rp-body h3{font-size:11px;font-weight:700;color:var(--ink2);margin:14px 0 5px;letter-spacing:.04em;text-transform:uppercase;}
+.rp-body p{margin-bottom:10px;color:var(--ink2);line-height:1.75;}
+.rp-body ul{list-style:none;margin:7px 0 12px;padding:0;}
+.rp-body ul li{
+  padding:6px 0 6px 16px;position:relative;
+  color:var(--ink3);font-size:12px;
+  border-bottom:1px solid var(--border);
+}
+.rp-body ul li:last-child{border-bottom:none;}
+.rp-body ul li::before{content:'›';position:absolute;left:0;color:var(--gold);font-size:14px;line-height:1.5;font-weight:700;}
+.rp-body strong{color:var(--ink);font-weight:600;}
+.rp-body .verdict-box{
+  background:var(--warm);border:1px solid var(--border);
+  border-radius:8px;padding:16px;margin:14px 0;
+}
+.rp-body .score-inline{
+  font-family:'Playfair Display',serif;font-size:28px;
+  font-weight:700;display:inline-block;margin-right:6px;
+}
+.rp-body .flag-high{color:var(--red);}
+.rp-body .flag-med{color:var(--amber);}
+.rp-body .flag-low{color:var(--green);}
+.rp-body .pattern-detected{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:5px;font-size:10px;
+  text-transform:uppercase;letter-spacing:.05em;font-weight:600;
+  background:var(--red-l);color:var(--red);
+  border:1px solid rgba(184,50,50,.2);margin:3px;
+}
+.rp-body .pattern-clear{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:5px;font-size:10px;
+  text-transform:uppercase;letter-spacing:.05em;font-weight:600;
+  background:var(--green-l);color:var(--green);
+  border:1px solid rgba(26,107,64,.2);margin:3px;
+}
+.rp-body .action-item{
+  padding:8px 13px;background:var(--warm);
+  border-left:3px solid var(--gold);
+  border-radius:0 6px 6px 0;margin:5px 0;
+  font-size:12px;color:var(--ink2);
+}
+.cursor{display:inline-block;width:2px;height:14px;background:var(--gold);margin-left:2px;vertical-align:middle;animation:cb .8s step-end infinite;}
+@keyframes cb{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ERROR BOX */
+.err-box{
+  padding:16px;background:#fff8f7;border:1px solid rgba(184,50,50,.25);
+  border-radius:8px;color:var(--red);font-size:12px;line-height:1.75;
+}
+.err-box strong{display:block;margin-bottom:6px;font-size:13px;font-weight:700;}
+.err-box code{background:var(--warm);padding:3px 7px;border-radius:4px;font-size:11px;color:var(--ink);}
+.err-box a{color:var(--amber);text-decoration:underline;}
+
+/* UPLOAD */
+.upload-zone{
+  border:2px dashed var(--border2);border-radius:9px;
+  padding:26px;text-align:center;cursor:pointer;
+  transition:all .2s;background:var(--warm);position:relative;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold-b);background:var(--gold-ll);}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.uf-info{
+  display:none;align-items:center;gap:10px;
+  padding:10px 14px;background:var(--green-l);
+  border:1px solid rgba(26,107,64,.2);border-radius:7px;
+  margin-top:10px;font-size:12px;color:var(--green);font-weight:500;
+}
+.uf-info.on{display:flex;}
+
+/* COMPARE */
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.cmp-panel{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);
+}
+.cmp-hd{
+  padding:12px 16px;background:var(--warm);
+  border-bottom:1px solid var(--border);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;
+  color:var(--ink2);display:flex;align-items:center;justify-content:space-between;
+}
+.cmp-body{padding:16px;font-size:12px;line-height:1.7;min-height:220px;overflow-y:auto;max-height:440px;}
+.cmp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:180px;color:var(--ink4);gap:7px;text-align:center;}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;z-index:400;background:rgba(28,26,21,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+.modal-ov.on{display:flex;}
+.modal{
+  background:var(--white);border:1px solid var(--border2);
+  border-radius:14px;padding:26px;width:90%;max-width:520px;
+  animation:fadeUp .2s ease;max-height:85vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.15);
+}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.modal-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink);}
+.modal-x{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:22px;line-height:1;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.modal-x:hover{background:var(--warm);color:var(--ink);}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:500;
+  background:var(--ink);border-radius:8px;
+  padding:11px 16px;font-size:12px;color:#fff;font-weight:500;
+  display:flex;align-items:center;gap:8px;
+  transform:translateY(70px);opacity:0;transition:all .28s;pointer-events:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.15);
+}
+.toast.on{transform:translateY(0);opacity:1;}
+.toast span:first-child{color:var(--gold);}
+
+.divider{height:1px;background:var(--border);margin:14px 0;}
+
+/* ===== INTEL PATTERN CARDS ===== */
+.pat-card{
+  padding:12px 14px;background:var(--warm);border-radius:8px;
+  border:1px solid var(--border);margin-bottom:8px;
+}
+.pat-card:last-child{margin-bottom:0;}
+.pat-title{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:3px;}
+.pat-sub{font-size:10px;color:var(--ink3);}
+
+/* ===== WATCHLIST PAGE ===== */
+.wl-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .2s;}
+.wl-card:hover{box-shadow:var(--shadow-md);}
+.wl-card-top{padding:16px 16px 12px;}
+.wl-card-name{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+.wl-card-type{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+.wl-score-row{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.wl-score-num{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;line-height:1;}
+.wl-card-notes{font-size:11px;color:var(--ink3);line-height:1.6;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.wl-card-bottom{padding:10px 16px;background:var(--warm);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.wl-card-date{font-size:10px;color:var(--ink4);}
+.wl-analyzing{font-size:10px;color:var(--gold);font-weight:500;display:flex;align-items:center;gap:5px;}
+
+/* ===== CHECKLIST ===== */
+.cl-section{margin-bottom:20px;}
+.cl-section-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--gold);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.cl-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--warm);border-radius:7px;margin-bottom:6px;cursor:pointer;transition:background .15s;border:1px solid transparent;}
+.cl-item:hover{background:var(--paper);}
+.cl-item.done{background:var(--green-l);border-color:rgba(26,107,64,.2);}
+.cl-item.done .cl-box{background:var(--green);border-color:var(--green);}
+.cl-item.done .cl-text{color:var(--ink3);text-decoration:line-through;}
+.cl-box{width:18px;height:18px;border:2px solid var(--border2);border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.cl-box.checked::after{content:'✓';color:#fff;font-size:11px;font-weight:700;}
+.cl-content{flex:1;}
+.cl-text{font-size:12px;color:var(--ink2);line-height:1.5;font-weight:500;}
+.cl-detail{font-size:10px;color:var(--ink3);margin-top:3px;line-height:1.5;}
+.cl-tag{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-right:5px;}
+.cl-tag.critical{background:var(--red-l);color:var(--red);}
+.cl-tag.required{background:var(--amber-l);color:var(--amber);}
+.cl-tag.recommended{background:var(--blue-l);color:var(--blue);}
+.cl-progress{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--warm);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;}
+.cl-prog-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.cl-prog-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s ease;}
+.cl-prog-text{font-size:11px;color:var(--ink3);white-space:nowrap;font-weight:500;}
+
+/* SAVED CHECKLIST CARDS */
+.sc-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:box-shadow .2s;}
+.sc-card:hover{box-shadow:var(--shadow-md);}
+.sc-top{padding:14px;border-bottom:1px solid var(--border);}
+.sc-name{font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+.sc-type{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+.sc-bottom{padding:10px 14px;background:var(--warm);display:flex;align-items:center;justify-content:space-between;}
+
+@media(max-width:1100px){
+  #page-checklist > div:first-of-type + div{grid-template-columns:1fr;}
+  .wl-card{margin-bottom:0;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== PASSWORD GATE ===== -->
+<div id="gate">
+  <div class="gate-box">
+    <div class="gate-badge">AS</div>
+    <div class="gate-title">Alt<em>Shield</em></div>
+    <div class="gate-sub">
+      AI-powered fraud detection for alternative investments.<br>
+      This is a private demo — please enter the access password.
+    </div>
+    <label class="gate-label">Access Password</label>
+    <input
+      class="gate-input"
+      id="gate-pwd"
+      type="password"
+      placeholder="Enter password"
+      autocomplete="off"
+      onkeydown="if(event.key==='Enter')checkPwd()"
+    >
+    <div class="gate-err" id="gate-err">Incorrect password. Please try again.</div>
+    <button class="gate-btn" onclick="checkPwd()">Enter AltShield →</button>
+    <div class="gate-hint">
+      Don't have the password? Contact the AltShield team.<br>
+      This product is under NDA — do not share without permission.
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// PASSWORD GATE
+// ============================================================
+// The password is set here — change "AltShield2026" to anything you like
+var GATE_PASSWORD = 'AltShield2026';
+
+function checkPwd(){
+  var val = document.getElementById('gate-pwd').value.trim();
+  if(val === GATE_PASSWORD){
+    var gate = document.getElementById('gate');
+    gate.style.transition = 'opacity .5s ease';
+    gate.style.opacity = '0';
+    gate.style.pointerEvents = 'none';
+    setTimeout(function(){ gate.style.display = 'none'; }, 500);
+    try { sessionStorage.setItem('as_auth','1'); } catch(e){}
+    // Show welcome for first-time users after gate dismisses
+    setTimeout(function(){
+      try{
+        if(!localStorage.getItem('as_welcomed')){
+          var wo = document.getElementById('welcome-ov');
+          if(wo) wo.style.display='flex';
+        }
+      }catch(e){}
+    }, 600);
+  } else {
+    var box = document.querySelector('.gate-box');
+    var err = document.getElementById('gate-err');
+    var inp = document.getElementById('gate-pwd');
+    err.classList.add('show');
+    box.classList.add('shake');
+    inp.value = '';
+    inp.focus();
+    setTimeout(function(){ box.classList.remove('shake'); }, 400);
+  }
+}
+
+// If already authenticated this session, skip gate immediately
+try {
+  if(sessionStorage.getItem('as_auth') === '1'){
+    document.getElementById('gate').style.display = 'none';
+  }
+} catch(e){}
+</script>
+
+<nav>
+  <div class="nav-logo" onclick="go('dashboard')">
+    <div class="nav-badge">AS</div>
+    AltShield
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="go('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="go('analyzer')">⚡ AI Analyzer</button>
+    <button class="nav-tab" onclick="go('watchlist')">📌 Watchlist</button>
+    <button class="nav-tab" onclick="go('checklist')">✅ Compliance</button>
+    <button class="nav-tab" onclick="go('portfolio')">Portfolio</button>
+    <button class="nav-tab" onclick="go('intel')">Intel Feed</button>
+  </div>
+  <div class="nav-right">
+    <div class="live-pill"><div class="dot-live"></div>AI-Powered · Live</div>
+  </div>
+</nav>
+
+<div class="app">
+
+<!-- ===== DASHBOARD ===== -->
+<div class="page active" id="page-dashboard">
+  <div class="ph">
+    <div>
+      <div class="ph-title">Risk <em>Command</em> Center</div>
+      <div class="ph-sub">Alternative Investment Fraud & Risk Intelligence</div>
+    </div>
+    <div class="ph-stats">
+      <div><div class="hs-val r">$6.6B</div><div class="hs-lbl">Fraud losses 2024</div></div>
+      <div><div class="hs-val a">3</div><div class="hs-lbl">Active alerts</div></div>
+      <div><div class="hs-val g">82</div><div class="hs-lbl">Portfolio health</div></div>
+    </div>
+  </div>
+
+  <div class="g4">
+    <div class="mc"><div class="mc-val">7</div><div class="mc-lbl">Active Holdings</div><div class="mc-chg up">↑ 2 this quarter</div></div>
+    <div class="mc"><div class="mc-val" style="color:var(--amber)">3</div><div class="mc-lbl">Flagged Deals</div><div class="mc-chg dn">↑ 1 new today</div></div>
+    <div class="mc"><div class="mc-val">12</div><div class="mc-lbl">Deals Verified</div><div class="mc-chg up">↑ 4 this month</div></div>
+    <div class="mc"><div class="mc-val" style="color:var(--green)">94%</div><div class="mc-lbl">Reg. Compliance</div><div class="mc-chg up">All current</div></div>
+  </div>
+
+  <div class="g21">
+    <div class="card">
+      <div class="ctitle">🚨 Active Alerts <span class="tag hi">3 Issues</span></div>
+      <div class="al-item c" onclick="openModal('a1')">
+        <div style="font-size:16px;flex-shrink:0">⚠️</div>
+        <div class="al-body"><div class="al-t">Sunrise Capital Fund III — Withdrawal Freeze Detected</div><div class="al-m">SEC Form D amendment · Pattern: Liquidity Gate</div></div>
+        <div class="al-time">2h ago</div>
+      </div>
+      <div class="al-item w" onclick="openModal('a2')">
+        <div style="font-size:16px;flex-shrink:0">🔍</div>
+        <div class="al-body"><div class="al-t">TerraVest RE Partners — Principal Background Alert</div><div class="al-m">Prior bankruptcy 2019 via PACER · ODD review recommended</div></div>
+        <div class="al-time">5h ago</div>
+      </div>
+      <div class="al-item w" onclick="openModal('a3')">
+        <div style="font-size:16px;flex-shrink:0">📋</div>
+        <div class="al-body"><div class="al-t">BlueSky Ventures — Promised Returns Anomaly</div><div class="al-m">28% annual projected · Exceeds benchmark by 3.1σ</div></div>
+        <div class="al-time">Yesterday</div>
+      </div>
+      <div class="al-item i">
+        <div style="font-size:16px;flex-shrink:0">📰</div>
+        <div class="al-body"><div class="al-t">SEC: New $47M Ponzi Indictment — Real Estate Sector</div><div class="al-m">Similar structure in 1 of your holdings</div></div>
+        <div class="al-time">2d ago</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Portfolio Risk Score</div>
+      <div class="ring-center">
+        <div class="ring-wrap">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="#e8e4da" stroke-width="8"/>
+            <circle cx="60" cy="60" r="50" fill="none" stroke="#b8860b" stroke-width="8" stroke-dasharray="314" stroke-dashoffset="57" stroke-linecap="round"/>
+          </svg>
+          <div class="ring-num">82<div class="ring-sm">/ 100</div></div>
+        </div>
+        <span class="tag lo" style="margin-top:8px">Low–Medium Risk</span>
+      </div>
+      <div class="divider"></div>
+      <div class="rbw">
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Fraud Exposure</span><span style="color:var(--amber);font-weight:600">Medium</span></div><div class="rb-track"><div class="rb-fill" style="width:42%;background:var(--amber)"></div></div></div>
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Liquidity Risk</span><span style="color:var(--red);font-weight:600">High</span></div><div class="rb-track"><div class="rb-fill" style="width:72%;background:var(--red)"></div></div></div>
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Operator Compliance</span><span style="color:var(--green);font-weight:600">Strong</span></div><div class="rb-track"><div class="rb-fill" style="width:88%;background:var(--green)"></div></div></div>
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Concentration Risk</span><span style="color:var(--amber);font-weight:600">Moderate</span></div><div class="rb-track"><div class="rb-fill" style="width:55%;background:var(--amber)"></div></div></div>
+      </div>
+      <div class="divider"></div>
+      <button class="btn btn-p" style="width:100%;justify-content:center" onclick="go('analyzer')">⚡ Run AI Deep Analysis</button>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">👁 Operator Watchlist</div>
+      <div class="wi"><div class="wa">SC</div><div class="wb-d"><div class="wn-name">Sunrise Capital</div><div class="wn-type">Private Equity · Real Estate</div></div><span class="tag hi">Alert</span></div>
+      <div class="wi"><div class="wa">TV</div><div class="wb-d"><div class="wn-name">TerraVest Partners</div><div class="wn-type">Real Estate · CRE</div></div><span class="tag md">Review</span></div>
+      <div class="wi"><div class="wa">BV</div><div class="wb-d"><div class="wn-name">BlueSky Ventures</div><div class="wn-type">Venture Capital</div></div><span class="tag md">Flag</span></div>
+      <div class="wi"><div class="wa">NR</div><div class="wb-d"><div class="wn-name">NorthRidge Credit</div><div class="wn-type">Private Credit</div></div><span class="tag lo">Clear</span></div>
+      <div class="wi"><div class="wa">AX</div><div class="wb-d"><div class="wn-name">Axiom Infrastructure</div><div class="wn-type">Infrastructure Fund</div></div><span class="tag lo">Clear</span></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">📅 Liquidity Calendar <span style="font-size:10px;color:var(--ink4);font-weight:400">Next 90 days</span></div>
+      <div class="tl">
+        <div class="tl-item up"><div class="tl-date">Apr 30, 2026</div><div class="tl-ev">Capital Call — Sunrise Capital Fund III</div><div class="tl-amt">$45,000 due · ⚠️ Operator under review</div></div>
+        <div class="tl-item wn"><div class="tl-date">May 15, 2026</div><div class="tl-ev">Lock-Up Expiry — BlueSky Series B</div><div class="tl-amt">Partial redemption window opens</div></div>
+        <div class="tl-item up"><div class="tl-date">Jun 1, 2026</div><div class="tl-ev">Distribution — NorthRidge Credit Fund</div><div class="tl-amt">Est. $8,200 return of income</div></div>
+        <div class="tl-item ps"><div class="tl-date">Mar 10, 2026</div><div class="tl-ev">Distribution — Axiom Infrastructure</div><div class="tl-amt">$12,400 received ✓</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== AI ANALYZER ===== -->
+<div class="page" id="page-analyzer">
+  <div class="ph" style="padding-bottom:18px">
+    <div>
+      <div class="ph-title">AI Deal <em>Analyzer</em></div>
+      <div class="ph-sub">Describe an investment · Upload a document · Compare two deals · Export PDF</div>
+    </div>
+  </div>
+
+  <!-- API KEY SETUP — USER FRIENDLY -->
+  <div id="api-bar-wrapper">
+    <!-- State 1: Key not set -->
+    <div id="api-setup-needed" style="background:linear-gradient(135deg,rgba(184,134,11,.1),rgba(184,134,11,.05));border:1px solid rgba(184,134,11,.3);border-radius:var(--r);padding:18px 22px;margin-bottom:16px;display:none;">
+      <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px">⚡ One-time setup — takes 2 minutes</div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:14px;line-height:1.7">To use the AI Analyzer, paste your Anthropic API key below. Your key is stored only in <em>your</em> browser — it never goes anywhere except directly to Anthropic's AI.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input class="ifield" id="api-key-input" type="password" placeholder="Paste your key here (sk-ant-api03-...)" oninput="saveKey(this.value)" style="flex:1;min-width:260px;font-size:13px;">
+        <span id="key-status" style="font-size:12px;color:var(--ink3);font-weight:500;white-space:nowrap"></span>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:var(--white);border:1px solid var(--border);border-radius:7px;font-size:11px;color:var(--ink3);line-height:1.8">
+        <strong style="color:var(--ink)">How to get your free key (3 steps):</strong><br>
+        1. Open <a href="https://console.anthropic.com/account/keys" target="_blank" style="color:var(--gold);font-weight:600">console.anthropic.com</a> in a new tab · Create a free account<br>
+        2. Go to <strong>API Keys</strong> in the left menu → click <strong>Create Key</strong><br>
+        3. Copy the key (starts with <code style="background:var(--warm);padding:1px 5px;border-radius:3px">sk-ant-...</code>) and paste it above<br>
+        <span style="color:var(--ink4);font-size:10px">New accounts receive ~$5 in free credits — enough for 30–50 analyses</span>
+      </div>
+    </div>
+    <!-- State 2: Key is set -->
+    <div id="api-setup-done" style="background:var(--green-l);border:1px solid rgba(26,107,64,.22);border-radius:var(--r);padding:12px 18px;margin-bottom:16px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--green);font-weight:600">
+        <span style="font-size:16px">✅</span> AI is ready — your API key is saved in this browser
+      </div>
+      <button onclick="resetKey()" style="background:none;border:1px solid rgba(26,107,64,.3);border-radius:5px;padding:4px 12px;font-size:10px;color:var(--green);cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">Change key</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="ai-tabs">
+    <button class="ai-tab active" onclick="setAITab('single')">⚡ Single Analysis</button>
+    <button class="ai-tab" onclick="setAITab('compare')">⇄ Compare 2 Deals</button>
+    <button class="ai-tab" onclick="setAITab('upload')">📄 Upload Document</button>
+  </div>
+
+  <!-- SINGLE -->
+  <div class="ai-pane active" id="aip-single">
+    <div class="ai-layout">
+      <div class="card">
+        <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:4px;color:var(--ink)">Analyze Any <em style="color:var(--gold)">Investment</em></div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:16px;">Describe a deal, paste pitch details, or pick a quick example below</div>
+
+        <div class="fg">
+          <div class="ilbl">Quick Examples</div>
+          <div class="preset-bar">
+            <button class="pb" onclick="loadP('ponzi','s')">Suspected Ponzi</button>
+            <button class="pb" onclick="loadP('re','s')">Real Estate Fund</button>
+            <button class="pb" onclick="loadP('vc','s')">VC Pitch</button>
+            <button class="pb" onclick="loadP('crypto','s')">Crypto Fund</button>
+            <button class="pb" onclick="loadP('pig','s')">Pig Butchering</button>
+          </div>
+        </div>
+
+        <div class="fg"><label class="ilbl">Fund or Investment Name</label><input class="ifield" id="s-name" placeholder="e.g. Horizon Growth Partners LP"/></div>
+        <div class="fg"><label class="ilbl">Investment Type</label>
+          <select class="ifield" id="s-type">
+            <option value="">Select a type...</option>
+            <option>Private Equity</option>
+            <option>Real Estate / REIT</option>
+            <option>Venture Capital</option>
+            <option>Private Credit / Lending</option>
+            <option>Hedge Fund</option>
+            <option>Cryptocurrency / Digital Assets</option>
+            <option>Infrastructure Fund</option>
+            <option>Other Alternative</option>
+          </select>
+        </div>
+        <div class="fg"><label class="ilbl">Deal Description or Pitch Details</label><textarea class="ifield" id="s-desc" placeholder="Paste the pitch, key terms, or describe what you've been told. Include: promised returns, manager background, fund structure, lock-up terms, auditor, or anything that feels off..."></textarea></div>
+        <div class="g2" style="margin-bottom:14px">
+          <div class="fg" style="margin-bottom:0"><label class="ilbl">Promised Annual Return</label><input class="ifield" id="s-ret" placeholder="e.g. 18% or unknown"/></div>
+          <div class="fg" style="margin-bottom:0"><label class="ilbl">Minimum Investment</label><input class="ifield" id="s-min" placeholder="e.g. $50,000"/></div>
+        </div>
+        <div class="fg"><label class="ilbl">Red Flags or Suspicious Details <span style="color:var(--ink4);font-weight:400">(optional)</span></label><input class="ifield" id="s-flags" placeholder="e.g. Wire to personal account, no auditor named, Telegram contact..."/></div>
+        <button class="btn btn-p" id="s-btn" onclick="runAI('single')" style="width:100%;justify-content:center;padding:11px 18px;font-size:13px">⚡ Run Fraud & Risk Analysis</button>
+      </div>
+
+      <div class="rp" id="rp-single">
+        <div class="rp-head">
+          <div class="rp-lbl"><span>🛡</span> AI Analysis Report</div>
+          <div class="thinking" id="th-single"><div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>Analyzing…</div>
+        </div>
+        <div class="rp-body" id="rb-single">
+          <div class="ai-empty">
+            <div class="ai-empty-icon">🛡</div>
+            <div class="ai-empty-t">AltShield AI Ready</div>
+            <div class="ai-empty-s">Fill in the investment details on the left<br>and click <strong style="color:var(--gold)">Run Fraud & Risk Analysis</strong><br>to receive a real-time AI report.<br><br>Or try one of the quick examples above.</div>
+          </div>
+        </div>
+        <div class="rp-actions" id="ra-single">
+          <button class="btn btn-p" onclick="exportPDF('single')" style="font-size:11px;padding:7px 14px">⬇ Export PDF</button>
+          <button class="btn btn-g" onclick="copyText('rb-single')" style="font-size:11px;padding:7px 14px">⌘ Copy Report</button>
+          <button class="btn btn-g" onclick="runAI('single')" style="font-size:11px;padding:7px 14px">↺ Re-analyze</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPARE -->
+  <div class="ai-pane" id="aip-compare">
+    <div class="cmp-grid">
+      <div class="card">
+        <div class="ctitle">Deal A</div>
+        <div class="fg"><label class="ilbl">Fund Name</label><input class="ifield" id="ca-name" placeholder="First investment name"/></div>
+        <div class="fg"><label class="ilbl">Type</label><select class="ifield" id="ca-type"><option value="">Select...</option><option>Private Equity</option><option>Real Estate / REIT</option><option>Venture Capital</option><option>Private Credit</option><option>Hedge Fund</option><option>Crypto / Digital Assets</option><option>Other</option></select></div>
+        <div class="fg"><label class="ilbl">Description</label><textarea class="ifield" id="ca-desc" style="min-height:70px" placeholder="Describe Deal A..."></textarea></div>
+        <div class="g2" style="margin-bottom:14px"><div class="fg" style="margin-bottom:0"><label class="ilbl">Return</label><input class="ifield" id="ca-ret" placeholder="e.g. 15%"/></div><div class="fg" style="margin-bottom:0"><label class="ilbl">Min</label><input class="ifield" id="ca-min" placeholder="e.g. $25K"/></div></div>
+        <div class="fg"><label class="ilbl">Red Flags</label><input class="ifield" id="ca-flags" placeholder="Any concerns?"/></div>
+        <div class="preset-bar"><button class="pb" onclick="loadP('re','a')">Real Estate</button><button class="pb" onclick="loadP('vc','a')">VC Fund</button><button class="pb" onclick="loadP('ponzi','a')">Suspected Fraud</button></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Deal B</div>
+        <div class="fg"><label class="ilbl">Fund Name</label><input class="ifield" id="cb-name" placeholder="Second investment name"/></div>
+        <div class="fg"><label class="ilbl">Type</label><select class="ifield" id="cb-type"><option value="">Select...</option><option>Private Equity</option><option>Real Estate / REIT</option><option>Venture Capital</option><option>Private Credit</option><option>Hedge Fund</option><option>Crypto / Digital Assets</option><option>Other</option></select></div>
+        <div class="fg"><label class="ilbl">Description</label><textarea class="ifield" id="cb-desc" style="min-height:70px" placeholder="Describe Deal B..."></textarea></div>
+        <div class="g2" style="margin-bottom:14px"><div class="fg" style="margin-bottom:0"><label class="ilbl">Return</label><input class="ifield" id="cb-ret" placeholder="e.g. 12%"/></div><div class="fg" style="margin-bottom:0"><label class="ilbl">Min</label><input class="ifield" id="cb-min" placeholder="e.g. $50K"/></div></div>
+        <div class="fg"><label class="ilbl">Red Flags</label><input class="ifield" id="cb-flags" placeholder="Any concerns?"/></div>
+        <div class="preset-bar"><button class="pb" onclick="loadP('crypto','b')">Crypto</button><button class="pb" onclick="loadP('pig','b')">Pig Butchering</button><button class="pb" onclick="loadP('re','b')">RE Fund</button></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-bottom:16px">
+      <button class="btn btn-p" id="c-btn" onclick="runAI('compare')" style="padding:11px 32px;font-size:13px">⚡ Compare Both Deals with AI</button>
+    </div>
+    <div class="cmp-grid" id="cmp-results" style="display:none">
+      <div class="cmp-panel">
+        <div class="cmp-hd"><span id="ca-rtitle">Deal A Analysis</span><div class="thinking" id="th-ca"><div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div></div></div>
+        <div class="cmp-body rp-body" id="rb-ca"><div class="cmp-empty"><div style="font-size:26px">A</div><div style="font-size:11px;color:var(--ink4)">Awaiting analysis...</div></div></div>
+      </div>
+      <div class="cmp-panel">
+        <div class="cmp-hd"><span id="cb-rtitle">Deal B Analysis</span><div class="thinking" id="th-cb"><div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div></div></div>
+        <div class="cmp-body rp-body" id="rb-cb"><div class="cmp-empty"><div style="font-size:26px">B</div><div style="font-size:11px;color:var(--ink4)">Awaiting analysis...</div></div></div>
+      </div>
+    </div>
+    <div id="cmp-actions" style="display:none;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn btn-p" onclick="exportPDF('compare')" style="font-size:11px;padding:7px 14px">⬇ Export Comparison PDF</button>
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="ai-pane" id="aip-upload">
+    <div class="ai-layout">
+      <div class="card">
+        <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:4px;color:var(--ink)">Upload a <em style="color:var(--gold)">Document</em></div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:16px">PPM, pitch deck, term sheet, or any investment document</div>
+
+        <div class="upload-zone" id="upload-zone" ondragover="doDrag(event)" ondragleave="unDrag(event)" ondrop="doDrop(event)">
+          <input type="file" id="file-input" accept=".txt,.pdf,.doc,.docx" onchange="doFileSelect(event)">
+          <div style="font-size:28px;margin-bottom:8px">📄</div>
+          <div style="font-weight:600;margin-bottom:4px;color:var(--ink)">Drop your document here</div>
+          <div style="font-size:11px;color:var(--ink3)">or click to browse · .txt .pdf .doc .docx</div>
+        </div>
+        <div class="uf-info" id="uf-info">
+          <span>📎</span><span id="uf-name">document.pdf</span>
+          <button onclick="clearFile()" style="margin-left:auto;background:none;border:none;color:var(--green);cursor:pointer;font-size:18px;line-height:1">×</button>
+        </div>
+
+        <div style="margin:14px 0;text-align:center;font-size:11px;color:var(--ink4)">— or paste text directly —</div>
+
+        <div class="fg"><label class="ilbl">Paste Document Text / PPM Excerpt</label><textarea class="ifield" id="u-text" style="min-height:120px" placeholder="Paste any text from a PPM, pitch deck, offering memorandum, term sheet, or investment email..."></textarea></div>
+        <div class="fg"><label class="ilbl">Investment Name <span style="color:var(--ink4);font-weight:400">(optional)</span></label><input class="ifield" id="u-name" placeholder="Fund name if known"/></div>
+        <div class="fg"><label class="ilbl">Your Specific Question <span style="color:var(--ink4);font-weight:400">(optional)</span></label><input class="ifield" id="u-concern" placeholder="e.g. Is this auditor legitimate? Are these returns realistic?"/></div>
+        <button class="btn btn-p" id="u-btn" onclick="runAI('upload')" style="width:100%;justify-content:center;padding:11px 18px;font-size:13px">⚡ Analyze Document with AI</button>
+      </div>
+
+      <div class="rp" id="rp-upload">
+        <div class="rp-head">
+          <div class="rp-lbl"><span>📄</span> Document Analysis Report</div>
+          <div class="thinking" id="th-upload"><div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>Reading document…</div>
+        </div>
+        <div class="rp-body" id="rb-upload">
+          <div class="ai-empty">
+            <div class="ai-empty-icon">📑</div>
+            <div class="ai-empty-t">Document Analyzer Ready</div>
+            <div class="ai-empty-s">Upload or paste content from any investment document.<br>The AI will flag fraud indicators, misleading claims,<br>and material risk factors automatically.</div>
+          </div>
+        </div>
+        <div class="rp-actions" id="ra-upload">
+          <button class="btn btn-p" onclick="exportPDF('upload')" style="font-size:11px;padding:7px 14px">⬇ Export PDF</button>
+          <button class="btn btn-g" onclick="copyText('rb-upload')" style="font-size:11px;padding:7px 14px">⌘ Copy Report</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PORTFOLIO ===== -->
+<div class="page" id="page-portfolio">
+  <div class="ph" style="padding-bottom:18px">
+    <div><div class="ph-title">Portfolio <em>Risk</em></div><div class="ph-sub">Cross-asset alternative investment monitoring</div></div>
+    <div class="ph-stats"><div><div class="hs-val">$847K</div><div class="hs-lbl">Total alts exposure</div></div><div><div class="hs-val g">82</div><div class="hs-lbl">Health score</div></div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="ctitle">Holdings Overview</div>
+    <table class="ptbl">
+      <thead><tr><th>Investment</th><th>Type</th><th>Committed</th><th>Lock-up</th><th>Fraud Score</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Sunrise Capital Fund III</strong></td><td style="color:var(--ink3)">Private Equity</td><td>$200,000</td><td style="color:var(--amber);font-weight:600">2028</td><td><span class="spill rh">71 HIGH</span></td><td><span class="tag hi">⚠ Alert</span></td><td><button class="btn btn-g" style="font-size:10px;padding:4px 10px" onclick="go('analyzer')">AI Review</button></td></tr>
+        <tr><td><strong>TerraVest RE Partners</strong></td><td style="color:var(--ink3)">Real Estate</td><td>$150,000</td><td style="color:var(--amber);font-weight:600">2027</td><td><span class="spill rm">48 MED</span></td><td><span class="tag md">⚠ Review</span></td><td><button class="btn btn-g" style="font-size:10px;padding:4px 10px" onclick="go('analyzer')">AI Review</button></td></tr>
+        <tr><td><strong>NorthRidge Credit Fund</strong></td><td style="color:var(--ink3)">Private Credit</td><td>$175,000</td><td>2026</td><td><span class="spill rl">18 LOW</span></td><td><span class="tag lo">✓ Clear</span></td><td><button class="btn btn-g" style="font-size:10px;padding:4px 10px" onclick="go('analyzer')">AI Review</button></td></tr>
+        <tr><td><strong>BlueSky Ventures Series B</strong></td><td style="color:var(--ink3)">Venture Capital</td><td>$100,000</td><td style="color:var(--red);font-weight:600">2030</td><td><span class="spill rm">54 MED</span></td><td><span class="tag md">⚠ Flag</span></td><td><button class="btn btn-g" style="font-size:10px;padding:4px 10px" onclick="go('analyzer')">AI Review</button></td></tr>
+        <tr><td><strong>Axiom Infrastructure I</strong></td><td style="color:var(--ink3)">Infrastructure</td><td>$222,000</td><td>2027</td><td><span class="spill rl">12 LOW</span></td><td><span class="tag lo">✓ Clear</span></td><td><button class="btn btn-g" style="font-size:10px;padding:4px 10px" onclick="go('analyzer')">AI Review</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Concentration Risk</div>
+      <div class="rbw">
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Real Estate</span><span style="font-weight:600">41%</span></div><div class="rb-track"><div class="rb-fill" style="width:41%;background:var(--amber)"></div></div></div>
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Private Equity</span><span style="font-weight:600">24%</span></div><div class="rb-track"><div class="rb-fill" style="width:24%;background:var(--blue)"></div></div></div>
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Private Credit</span><span style="font-weight:600">21%</span></div><div class="rb-track"><div class="rb-fill" style="width:21%;background:var(--green)"></div></div></div>
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Venture Capital</span><span style="font-weight:600">12%</span></div><div class="rb-track"><div class="rb-fill" style="width:12%;background:var(--gold)"></div></div></div>
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Infrastructure</span><span style="font-weight:600">2%</span></div><div class="rb-track"><div class="rb-fill" style="width:2%;background:var(--ink4)"></div></div></div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:var(--amber-l);border-radius:7px;font-size:12px;color:var(--amber);font-weight:500;border:1px solid rgba(160,96,0,.2)">⚠ Real estate exposure exceeds the 35% recommended cap.</div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Stress Test Scenarios</div>
+      <div class="rbw">
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Rate +200bps shock</span><span style="color:var(--red);font-weight:600">-18.4%</span></div><div class="rb-track"><div class="rb-fill" style="width:18%;background:var(--red)"></div></div></div>
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">Credit market freeze</span><span style="color:var(--red);font-weight:600">-24.1%</span></div><div class="rb-track"><div class="rb-fill" style="width:24%;background:var(--red)"></div></div></div>
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">RE correction -30%</span><span style="color:var(--amber);font-weight:600">-12.3%</span></div><div class="rb-track"><div class="rb-fill" style="width:12%;background:var(--amber)"></div></div></div>
+        <div class="rb"><div class="rb-hd"><span class="rb-lbl">1 operator fraud event</span><span style="color:var(--red);font-weight:600">-23.6%</span></div><div class="rb-track"><div class="rb-fill" style="width:23%;background:var(--red)"></div></div></div>
+      </div>
+      <div style="margin-top:12px;font-size:10px;color:var(--ink4)">Simulated impact · Illustrative only · Not financial advice</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INTEL FEED ===== -->
+<div class="page" id="page-intel">
+  <div class="ph" style="padding-bottom:18px">
+    <div><div class="ph-title">Intelligence <em>Feed</em></div><div class="ph-sub">SEC/DOJ/FINRA enforcement · Real-time fraud alerts matched to your holdings</div></div>
+  </div>
+  <div class="g21">
+    <div class="card">
+      <div class="ctitle">Live Threat Intelligence <div class="dot-live" style="margin-left:4px"></div></div>
+      <div class="feed-item fc">
+        <div class="feed-top"><span class="feed-cat c">SEC Enforcement</span><span class="feed-age">2h ago</span></div>
+        <div class="feed-title">SEC charges Florida GP with $47M Ponzi scheme targeting real estate investors</div>
+        <div class="feed-meta">Similar structure in 1 of your holdings · Review Sunrise Capital</div>
+      </div>
+      <div class="feed-item fw">
+        <div class="feed-top"><span class="feed-cat w">FINRA Alert</span><span class="feed-age">4h ago</span></div>
+        <div class="feed-title">New FINRA guidance on alternative investment disclosures for RIAs effective Q2 2026</div>
+        <div class="feed-meta">Affects 3 of your current holdings</div>
+      </div>
+      <div class="feed-item fi">
+        <div class="feed-top"><span class="feed-cat i">DOJ Indictment</span><span class="feed-age">7h ago</span></div>
+        <div class="feed-title">DOJ indicts 3 hedge fund principals for fabricating audit letters — Chicago fund</div>
+        <div class="feed-meta">Pattern: unverified auditor · AltShield flag type match</div>
+      </div>
+      <div class="feed-item fi">
+        <div class="feed-top"><span class="feed-cat i">Pig Butchering</span><span class="feed-age">1d ago</span></div>
+        <div class="feed-title">New pig butchering network promoting fake private credit platforms via LinkedIn</div>
+        <div class="feed-meta">4 domain signatures added to watchlist</div>
+      </div>
+      <div class="feed-item fw">
+        <div class="feed-top"><span class="feed-cat w">State Regulator</span><span class="feed-age">3d ago</span></div>
+        <div class="feed-title">Texas SRB issues investor alert on unregistered real estate syndications</div>
+        <div class="feed-meta">TerraVest RE Partners: verify state registration status</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="ctitle">Fraud Pattern Library</div>
+        <div class="pat-card"><div class="pat-title">🔴 Ponzi Structure</div><div class="pat-sub">Returns paid from new investor capital rather than real profits. 847 documented cases in DB.</div></div>
+        <div class="pat-card"><div class="pat-title">🟠 Return Anomaly</div><div class="pat-sub">Projected returns exceed peer benchmark by 2σ or more — a leading fraud indicator. 1,203 cases.</div></div>
+        <div class="pat-card"><div class="pat-title">🔴 Pig Butchering</div><div class="pat-sub">Social engineering + fake investment platform. Responsible for $6.6B in US losses in 2024.</div></div>
+        <div class="pat-card"><div class="pat-title">🟠 Liquidity Gate Abuse</div><div class="pat-sub">Redemption suspension without a legitimate market trigger event. 412 documented cases.</div></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Model Statistics</div>
+        <div class="rbw">
+          <div class="rb"><div class="rb-hd"><span class="rb-lbl">Detection Accuracy</span><span style="color:var(--green);font-weight:600">94.2%</span></div><div class="rb-track"><div class="rb-fill" style="width:94%;background:var(--green)"></div></div></div>
+          <div class="rb"><div class="rb-hd"><span class="rb-lbl">Cases in Training DB</span><span style="font-weight:600">10,847</span></div><div class="rb-track"><div class="rb-fill" style="width:100%;background:var(--blue)"></div></div></div>
+          <div class="rb"><div class="rb-hd"><span class="rb-lbl">False Positive Rate</span><span style="color:var(--green);font-weight:600">2.1%</span></div><div class="rb-track"><div class="rb-fill" style="width:2%;background:var(--green)"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== WATCHLIST ===== -->
+<div class="page" id="page-watchlist">
+  <div class="ph" style="padding-bottom:18px">
+    <div>
+      <div class="ph-title">Operator <em>Watchlist</em></div>
+      <div class="ph-sub">Save, track, and monitor any fund or operator · Scores persist across sessions</div>
+    </div>
+    <button class="btn btn-p" onclick="openAddWatchlist()" style="flex-shrink:0">+ Add Operator</button>
+  </div>
+
+  <!-- ADD FORM -->
+  <div class="card" id="wl-add-form" style="display:none;margin-bottom:16px;border-color:var(--gold-b);">
+    <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;margin-bottom:14px;color:var(--ink)">Add to Watchlist</div>
+    <div class="g2">
+      <div class="fg"><label class="ilbl">Fund / Operator Name</label><input class="ifield" id="wl-name" placeholder="e.g. Sunrise Capital Fund III"/></div>
+      <div class="fg"><label class="ilbl">Investment Type</label>
+        <select class="ifield" id="wl-type">
+          <option value="">Select type...</option>
+          <option>Private Equity</option><option>Real Estate / REIT</option>
+          <option>Venture Capital</option><option>Private Credit</option>
+          <option>Hedge Fund</option><option>Cryptocurrency</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="ilbl">Notes / Why You're Watching This</label><textarea class="ifield" id="wl-notes" style="min-height:70px" placeholder="e.g. High promised returns, unverified manager background, capital call due soon..."></textarea></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p" onclick="addToWatchlist()" id="wl-add-btn">📌 Add to Watchlist</button>
+      <button class="btn btn-g" onclick="closeAddWatchlist()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div id="wl-empty" style="display:none">
+    <div class="card" style="text-align:center;padding:48px">
+      <div style="font-size:36px;margin-bottom:12px">📌</div>
+      <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--ink3);margin-bottom:8px">No operators on your watchlist yet</div>
+      <div style="font-size:13px;color:var(--ink4);line-height:1.7;margin-bottom:20px">Add any fund, manager, or investment you want to monitor over time.<br>Each entry gets an AI fraud score and is saved to your browser.</div>
+      <button class="btn btn-p" onclick="openAddWatchlist()">+ Add Your First Operator</button>
+    </div>
+  </div>
+
+  <!-- WATCHLIST GRID -->
+  <div id="wl-grid" class="g3"></div>
+</div>
+
+<!-- ===== COMPLIANCE CHECKLIST ===== -->
+<div class="page" id="page-checklist">
+  <div class="ph" style="padding-bottom:18px">
+    <div>
+      <div class="ph-title">Compliance <em>Checklist</em></div>
+      <div class="ph-sub">Generate a regulatory due diligence checklist for any investment type · Download as PDF</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start;">
+    <!-- INPUT -->
+    <div class="card">
+      <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;margin-bottom:4px;color:var(--ink)">Generate a <em style="color:var(--gold)">Checklist</em></div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:16px">Select your investment type and describe the deal to get a custom compliance checklist</div>
+
+      <div class="fg"><label class="ilbl">Investment Type</label>
+        <select class="ifield" id="cl-type">
+          <option value="">Select a type...</option>
+          <option>Private Equity</option>
+          <option>Real Estate / REIT</option>
+          <option>Venture Capital</option>
+          <option>Private Credit / Lending</option>
+          <option>Hedge Fund</option>
+          <option>Cryptocurrency / Digital Assets</option>
+          <option>Infrastructure Fund</option>
+          <option>Other Alternative</option>
+        </select>
+      </div>
+      <div class="fg"><label class="ilbl">Fund Name <span style="color:var(--ink4);font-weight:400">(optional)</span></label><input class="ifield" id="cl-name" placeholder="e.g. Horizon Growth Partners LP"/></div>
+      <div class="fg"><label class="ilbl">Key Deal Details <span style="color:var(--ink4);font-weight:400">(optional)</span></label><textarea class="ifield" id="cl-desc" style="min-height:80px" placeholder="Describe the deal, jurisdiction, fee structure, lock-up, auditor, any specific concerns..."></textarea></div>
+
+      <div style="margin-bottom:14px">
+        <div class="ilbl" style="margin-bottom:8px">Quick Templates</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button class="pb" onclick="setClTemplate('pe')">Private Equity</button>
+          <button class="pb" onclick="setClTemplate('re')">Real Estate</button>
+          <button class="pb" onclick="setClTemplate('vc')">Venture Capital</button>
+          <button class="pb" onclick="setClTemplate('hedge')">Hedge Fund</button>
+          <button class="pb" onclick="setClTemplate('crypto')">Crypto Fund</button>
+        </div>
+      </div>
+
+      <button class="btn btn-p" id="cl-btn" onclick="runChecklist()" style="width:100%;justify-content:center;padding:11px 18px;font-size:13px">✅ Generate Compliance Checklist</button>
+    </div>
+
+    <!-- OUTPUT -->
+    <div class="rp" id="rp-cl">
+      <div class="rp-head">
+        <div class="rp-lbl"><span>✅</span> Regulatory Due Diligence Checklist</div>
+        <div class="thinking" id="th-cl"><div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>Generating…</div>
+      </div>
+      <div class="rp-body" id="rb-cl">
+        <div class="ai-empty">
+          <div class="ai-empty-icon">📋</div>
+          <div class="ai-empty-t">Checklist Generator Ready</div>
+          <div class="ai-empty-s">Select an investment type and click Generate.<br>The AI produces a custom step-by-step regulatory<br>due diligence checklist for that specific investment.<br><br>Each item links to the relevant regulatory body<br>and explains exactly what to verify and why.</div>
+        </div>
+      </div>
+      <div class="rp-actions" id="ra-cl">
+        <button class="btn btn-p" onclick="exportChecklistPDF()" style="font-size:11px;padding:7px 14px">⬇ Export PDF Checklist</button>
+        <button class="btn btn-g" onclick="copyText('rb-cl')" style="font-size:11px;padding:7px 14px">⌘ Copy</button>
+        <button class="btn btn-g" onclick="runChecklist()" style="font-size:11px;padding:7px 14px">↺ Regenerate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAVED CHECKLISTS -->
+  <div style="margin-top:20px">
+    <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink);margin-bottom:12px">Saved Checklists</div>
+    <div id="saved-checklists-grid" class="g3">
+      <div class="card" style="border-style:dashed;text-align:center;padding:24px;cursor:pointer;color:var(--ink3)" onclick="runChecklist()">
+        <div style="font-size:24px;margin-bottom:8px">+</div>
+        <div style="font-size:12px;font-weight:500">Generate a new checklist</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- MODAL -->
+<div class="modal-ov" id="modal-ov" onclick="closeMod(event)">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-x" onclick="closeModDirect()">×</button>
+    </div>
+    <div id="modal-body" style="font-size:13px;line-height:1.75;color:var(--ink2)"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span>✓</span><span id="toast-msg"></span></div>
+
+<script>
+// ===== API KEY =====
+var apiKey='';
+function saveKey(v){
+  apiKey=v.trim();
+  var st=document.getElementById('key-status');
+  if(apiKey.startsWith('sk-ant-')){
+    if(st)st.textContent='✓ Key saved — you are ready to go!';
+    if(st)st.style.color='var(--green)';
+    try{localStorage.setItem('as_apikey',apiKey);}catch(e){}
+    setTimeout(function(){
+      var needed=document.getElementById('api-setup-needed');
+      var done=document.getElementById('api-setup-done');
+      if(needed)needed.style.display='none';
+      if(done)done.style.display='flex';
+    },600);
+  }else if(apiKey.length>0){
+    if(st)st.textContent='⚠ That does not look right — it should start with sk-ant-';
+    if(st)st.style.color='var(--amber)';
+  }else{
+    if(st){st.textContent='';st.style.color='var(--ink3)';}
+  }
+}
+function resetKey(){
+  apiKey='';
+  try{localStorage.removeItem('as_apikey');}catch(e){}
+  document.getElementById('api-key-input').value='';
+  document.getElementById('api-setup-needed').style.display='block';
+  document.getElementById('api-setup-done').style.display='none';
+}
+function updateKeyUI(){
+  var needed=document.getElementById('api-setup-needed');
+  var done=document.getElementById('api-setup-done');
+  if(!needed||!done)return;
+  if(apiKey&&apiKey.startsWith('sk-ant-')){
+    needed.style.display='none';
+    done.style.display='flex';
+  }else{
+    needed.style.display='block';
+    done.style.display='none';
+  }
+}
+try{
+  var sk=localStorage.getItem('as_apikey');
+  if(sk){
+    apiKey=sk;
+    var inp=document.getElementById('api-key-input');
+    if(inp)inp.value=sk;
+  }
+}catch(e){}
+window.addEventListener('load',function(){
+  updateKeyUI();
+  // Only show welcome overlay if gate has been passed this session
+  try{
+    var isAuthed = sessionStorage.getItem('as_auth')==='1';
+    var hasWelcomed = localStorage.getItem('as_welcomed');
+    if(isAuthed && !hasWelcomed){
+      document.getElementById('welcome-ov').style.display='flex';
+    }
+  }catch(e){}
+});
+
+// ===== NAV =====
+function go(page){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('page-'+page).classList.add('active');
+  var map=['dashboard','analyzer','watchlist','checklist','portfolio','intel'];
+  var i=map.indexOf(page);if(i>=0)document.querySelectorAll('.nav-tab')[i].classList.add('active');
+  window.scrollTo(0,0);
+  if(page==='watchlist')renderWatchlist();
+  if(page==='checklist')renderSavedChecklists();
+}
+function setAITab(t){
+  document.querySelectorAll('.ai-tab').forEach(function(x){x.classList.remove('active');});
+  document.querySelectorAll('.ai-pane').forEach(function(x){x.classList.remove('active');});
+  var map=['single','compare','upload'];
+  document.querySelectorAll('.ai-tab')[map.indexOf(t)].classList.add('active');
+  document.getElementById('aip-'+t).classList.add('active');
+}
+
+// ===== TOAST =====
+function showToast(msg){var t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2800);}
+
+// ===== MODALS =====
+var alertData={
+  a1:{title:'⚠️ Sunrise Capital Fund III',body:'<div style="padding:13px;background:#fff7f7;border:1px solid rgba(184,50,50,.2);border-radius:8px;color:var(--red);margin-bottom:14px;font-weight:500">Critical: SEC Form D amendment filed. Redemption requests currently suspended — matching 412 historical Liquidity Gate fraud cases.</div><p style="margin-bottom:8px"><strong>Your Exposure:</strong> $200,000 committed · Capital call $45,000 due Apr 30</p><p><strong>Recommended Action:</strong> Do not fulfill the capital call. Engage legal counsel immediately. File an SEC tip at sec.gov/tcr</p>'},
+  a2:{title:'🔍 TerraVest RE Partners',body:'<div style="padding:13px;background:#fff9f0;border:1px solid rgba(160,96,0,.2);border-radius:8px;color:var(--amber);margin-bottom:14px;font-weight:500">Warning: Managing principal filed personal bankruptcy in 2019. Not disclosed in PPM — potential material misrepresentation.</div><p style="margin-bottom:8px"><strong>Your Exposure:</strong> $150,000 committed · Lock-up until 2027</p><p><strong>Recommended Action:</strong> Request a written explanation from the GP. Conduct a full ODD review. Consult a fiduciary advisor.</p>'},
+  a3:{title:'📋 BlueSky Ventures — Returns Anomaly',body:'<div style="padding:13px;background:#fff9f0;border:1px solid rgba(160,96,0,.2);border-radius:8px;color:var(--amber);margin-bottom:14px;font-weight:500">Flag: 28% projected annual return exceeds the VC peer benchmark by 3.1 standard deviations — a leading fraud indicator.</div><p style="margin-bottom:8px"><strong>Your Exposure:</strong> $100,000 committed · Lock-up until 2030</p><p><strong>Recommended Action:</strong> Request audited track record, verified LP references, and an independent valuation methodology.</p>'}
+};
+function openModal(id){var d=alertData[id];if(!d)return;document.getElementById('modal-title').textContent=d.title;document.getElementById('modal-body').innerHTML=d.body;document.getElementById('modal-ov').classList.add('on');}
+function closeMod(e){if(e.target===document.getElementById('modal-ov'))closeModDirect();}
+function closeModDirect(){document.getElementById('modal-ov').classList.remove('on');}
+
+// ===== PRESETS =====
+var PS={
+  ponzi:{name:'Sovereign Yield Partners LLC',type:'Private Credit / Lending',desc:'Manager claims consistent 22% annual returns through private lending to small businesses. No auditor named. Funds must be wired to a personal LLC account. Manager found us on Telegram. They guarantee capital protection. No Form D on SEC website. References provided are only people within the same social group.',ret:'22%',min:'$25,000',flags:'Wire to personal account, no auditor, guaranteed returns, met on Telegram'},
+  re:{name:'Horizon Real Estate Opportunity Fund IV',type:'Real Estate / REIT',desc:'SEC-registered fund targeting distressed multifamily properties in Sun Belt markets. 7-year lock-up. 2/20 fee structure. Claims 14% IRR based on 3 prior funds. Audited by a small regional CPA firm in Nevada. Redemptions permitted quarterly with 90-day notice but gating provisions apply.',ret:'14% IRR',min:'$100,000',flags:'Gating provisions, small regional auditor, 7-year lock-up'},
+  vc:{name:'BlueSky Ventures Series B',type:'Venture Capital',desc:'Early-stage deep tech venture fund. Manager has 8 years experience at a Tier 2 VC firm. Promising 28% net annual returns based on portfolio modeling. Claims portfolio includes 3 unicorn candidates. No audited financials provided yet. SAFE agreements only. No LP advisory board.',ret:'28%',min:'$50,000',flags:'No audited financials, SAFE only, no LP advisory board'},
+  crypto:{name:'AlphaChain Digital Asset Fund',type:'Cryptocurrency / Digital Assets',desc:'Crypto hedge fund claiming to run market-neutral arbitrage strategies across 40+ exchanges. Promises 35% annualized returns with low volatility. Offshore Cayman structure. No US registration. Manager claims prior Goldman Sachs background — unverified. 6-month initial lock-up. Auditor based in Seychelles.',ret:'35%',min:'$250,000',flags:'Offshore structure, unverified Goldman background, Seychelles auditor'},
+  pig:{name:'AsiaPacific Growth Partners',type:'Other Alternative',desc:'Met the manager on LinkedIn two weeks ago. They befriended me and then introduced this investment opportunity. They said I can start small at $1,000 and have already shown me a dashboard where my money has grown 40% in 2 weeks. They want me to invest more. The platform claims to be regulated but I cannot find it on any official registry. They are asking me to use their app to trade crypto.',ret:'40% in 2 weeks',min:'$1,000',flags:'LinkedIn cold contact, fake gains dashboard, unregistered app, social engineering'}
+};
+function loadP(k,slot){
+  var p=PS[k];if(!p)return;
+  if(slot==='s'){document.getElementById('s-name').value=p.name;document.getElementById('s-type').value=p.type;document.getElementById('s-desc').value=p.desc;document.getElementById('s-ret').value=p.ret;document.getElementById('s-min').value=p.min;document.getElementById('s-flags').value=p.flags;}
+  if(slot==='a'){document.getElementById('ca-name').value=p.name;document.getElementById('ca-type').value=p.type;document.getElementById('ca-desc').value=p.desc;document.getElementById('ca-ret').value=p.ret;document.getElementById('ca-min').value=p.min;document.getElementById('ca-flags').value=p.flags;}
+  if(slot==='b'){document.getElementById('cb-name').value=p.name;document.getElementById('cb-type').value=p.type;document.getElementById('cb-desc').value=p.desc;document.getElementById('cb-ret').value=p.ret;document.getElementById('cb-min').value=p.min;document.getElementById('cb-flags').value=p.flags;}
+}
+
+// ===== FILE UPLOAD =====
+var uploadedText='';
+function doDrag(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag');}
+function unDrag(e){document.getElementById('upload-zone').classList.remove('drag');}
+function doDrop(e){e.preventDefault();document.getElementById('upload-zone').classList.remove('drag');var f=e.dataTransfer.files[0];if(f)processFile(f);}
+function doFileSelect(e){var f=e.target.files[0];if(f)processFile(f);}
+function processFile(f){document.getElementById('uf-name').textContent=f.name;document.getElementById('uf-info').classList.add('on');var r=new FileReader();r.onload=function(e){uploadedText=e.target.result;document.getElementById('u-text').value=uploadedText.substring(0,3000);showToast('Document loaded — ready to analyze');};r.readAsText(f);}
+function clearFile(){uploadedText='';document.getElementById('uf-info').classList.remove('on');document.getElementById('u-text').value='';document.getElementById('file-input').value='';}
+
+// ===== PROMPT =====
+function buildPrompt(name,type,desc,ret,min,flags,mode){
+  var modeNote=mode==='document'?'You are analyzing the content of an uploaded investment document.':'You are analyzing a described investment opportunity.';
+  return 'You are AltShield, an expert alternative investment fraud and risk analyst with deep knowledge of SEC enforcement actions, FINRA regulations, common fraud patterns (Ponzi schemes, pig butchering, return anomalies, liquidity gate abuse, unregistered securities, fake auditors), and institutional-grade due diligence frameworks.\n\n'+modeNote+'\n\nINVESTMENT DETAILS:\n- Name: '+(name||'Not provided')+'\n- Type: '+(type||'Not specified')+'\n- Promised Return: '+(ret||'Not specified')+'\n- Minimum Investment: '+(min||'Not specified')+'\n- Description / Content: '+(desc||'Not provided')+'\n- Flagged Concerns: '+(flags||'None noted')+'\n\nProduce a comprehensive FRAUD & RISK REPORT using this EXACT HTML format:\n\n<h2>🎯 Executive Verdict</h2>\n<div class="verdict-box">\n2-3 sentences of direct assessment. Include a fraud risk score like: <span class="score-inline flag-[low/med/high]">[0-100]</span>/100\n</div>\n\n<h2>🔍 Fraud Pattern Detection</h2>\nDetected patterns: <span class="pattern-detected">⚠ PATTERN NAME</span>\nCleared checks: <span class="pattern-clear">✓ CHECK NAME</span>\nThen a brief paragraph explaining key findings.\n\n<h2>⚠️ Red Flags Identified</h2>\n<ul><li>Each specific red flag with brief explanation</li></ul>\n\n<h2>✅ Positive Indicators</h2>\n<ul><li>Each legitimate indicator found (or note if none)</li></ul>\n\n<h2>📊 Risk Breakdown</h2>\n<h3>Fraud Risk</h3><p>Assessment</p>\n<h3>Liquidity Risk</h3><p>Assessment</p>\n<h3>Operator Risk</h3><p>Assessment</p>\n<h3>Regulatory Risk</h3><p>Assessment</p>\n\n<h2>🛡 Recommended Actions</h2>\n<div class="action-item">Action 1</div>\n<div class="action-item">Action 2</div>\n<div class="action-item">Action 3</div>\n\n<h2>📋 Due Diligence Checklist</h2>\n<ul><li>5-8 specific things the investor should verify</li></ul>\n\nBe thorough and specific. If this is a pig butchering scam or Ponzi scheme, say so clearly. Always end with a clear bottom-line recommendation.';
+}
+
+// ===== CENTRAL API CALL =====
+// Routes through corsproxy.io to bypass CORS restrictions on hosted sites.
+// Your API key travels encrypted over HTTPS — corsproxy.io only sees headers, not stores them.
+async function callAI(prompt, maxTokens){
+  maxTokens = maxTokens || 1500;
+
+  var payload = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: maxTokens,
+    stream: false,
+    messages: [{ role: 'user', content: prompt }]
+  };
+
+  // Try direct first (works on localhost), then via CORS proxy (works on hosted sites)
+  var attempts = [
+    {
+      url: 'https://api.anthropic.com/v1/messages',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      }
+    },
+    {
+      url: 'https://corsproxy.io/?url=' + encodeURIComponent('https://api.anthropic.com/v1/messages'),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'origin': 'https://corsproxy.io'
+      }
+    }
+  ];
+
+  var lastError = null;
+  for(var i = 0; i < attempts.length; i++){
+    try{
+      var res = await fetch(attempts[i].url, {
+        method: 'POST',
+        headers: attempts[i].headers,
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){
+        var et = await res.text();
+        var em = 'API error ' + res.status;
+        try { var j = JSON.parse(et); em = j.error && j.error.message ? j.error.message : em; } catch(e){}
+        throw new Error(em);
+      }
+      var data = await res.json();
+      if(data.error) throw new Error(data.error.message || 'API error');
+      return data.content && data.content[0] ? data.content[0].text : '';
+    } catch(err){
+      lastError = err;
+      // If it's an auth error, don't retry — wrong key
+      if(err.message && (err.message.includes('401') || err.message.includes('invalid_api_key') || err.message.includes('authentication'))){
+        throw err;
+      }
+      // Otherwise try next attempt
+    }
+  }
+  throw lastError;
+}
+
+// ===== STREAM TO PANEL =====
+async function streamTo(prompt,bodyId,panelId,thinkId,actionsId,btnId,btnLabel){
+  if(!apiKey||!apiKey.startsWith('sk-ant-')){
+    document.getElementById(bodyId).innerHTML='<div class="err-box"><strong>🔑 API Key Required</strong>To run live AI analysis, you need a free Anthropic API key.<br><br>1. Visit <a href="https://console.anthropic.com/account/keys" target="_blank">console.anthropic.com</a> and create a free account<br>2. Go to API Keys and click "Create Key"<br>3. Copy the key (starts with sk-ant-...)<br>4. Paste it using the Change key button above<br><br><span style="color:var(--ink3)">Your key is stored only in your browser.</span></div>';
+    return '';
+  }
+  var body=document.getElementById(bodyId),panel=document.getElementById(panelId),think=document.getElementById(thinkId);
+  var actions=actionsId?document.getElementById(actionsId):null,btn=btnId?document.getElementById(btnId):null;
+  panel.classList.add('active');think.classList.add('on');
+  if(actions)actions.classList.remove('on');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Analyzing…';}
+  body.innerHTML='<div id="sc_'+bodyId+'" style="line-height:1.8;color:var(--ink3);font-size:12px;padding:20px 0">⏳ Connecting to AI — this takes 15–30 seconds…</div>';
+  var sc=body.querySelector('div');
+  var full='';
+  try{
+    full=await callAI(prompt,1500);
+    sc.innerHTML=full;
+  }catch(err){
+    var msg=err.message||'Unknown error';
+    if(msg.includes('401')||msg.includes('authentication')||msg.includes('invalid_api_key')){
+      sc.innerHTML='<div class="err-box"><strong>🔑 Invalid API Key</strong>Your API key was not accepted.<br><br>Click <strong>Change key</strong> above and paste your key again. It must start with <code>sk-ant-</code>.<br><br>Get a new key at <a href="https://console.anthropic.com/account/keys" target="_blank">console.anthropic.com</a></div>';
+    } else {
+      sc.innerHTML='<div class="err-box"><strong>⚠ Connection Error</strong>Could not reach the AI. Please check your internet connection and try again.<br><br><span style="font-size:11px;color:var(--ink3)">Technical detail: '+msg+'</span></div>';
+    }
+  }finally{
+    panel.classList.remove('active');think.classList.remove('on');
+    if(actions)actions.classList.add('on');
+    if(btn){btn.disabled=false;btn.innerHTML=btnLabel;}
+  }
+  return full;
+}
+
+function showFetchError(sc,msg){
+  sc.innerHTML='<div class="err-box"><strong>⚠ Connection Error</strong>Could not reach the AI.<br><br><span style="font-size:11px;color:var(--ink3)">'+msg+'</span></div>';
+}
+
+// ===== RUNNER =====
+async function runAI(mode){
+  if(mode==='single'){
+    var desc=document.getElementById('s-desc').value.trim(),name=document.getElementById('s-name').value.trim();
+    if(!desc&&!name){showToast('Please enter investment details first');return;}
+    var prompt=buildPrompt(name,document.getElementById('s-type').value,desc,document.getElementById('s-ret').value,document.getElementById('s-min').value,document.getElementById('s-flags').value,'single');
+    await streamTo(prompt,'rb-single','rp-single','th-single','ra-single','s-btn','⚡ Run Fraud & Risk Analysis');
+  }
+  if(mode==='upload'){
+    var text=document.getElementById('u-text').value.trim();
+    if(!text){showToast('Please upload a document or paste text first');return;}
+    var prompt=buildPrompt(document.getElementById('u-name').value||'Uploaded Document','Unknown',text.substring(0,4000),'','',document.getElementById('u-concern').value,'document');
+    await streamTo(prompt,'rb-upload','rp-upload','th-upload','ra-upload','u-btn','⚡ Analyze Document with AI');
+  }
+  if(mode==='compare'){
+    var aDesc=document.getElementById('ca-desc').value.trim(),bDesc=document.getElementById('cb-desc').value.trim();
+    if(!aDesc&&!bDesc){showToast('Please fill in at least one deal first');return;}
+    var aName=document.getElementById('ca-name').value||'Deal A',bName=document.getElementById('cb-name').value||'Deal B';
+    document.getElementById('cmp-results').style.display='grid';
+    document.getElementById('cmp-actions').style.display='flex';
+    document.getElementById('ca-rtitle').textContent=aName+' Analysis';
+    document.getElementById('cb-rtitle').textContent=bName+' Analysis';
+    var btn=document.getElementById('c-btn');btn.disabled=true;btn.textContent='⏳ Comparing…';
+    document.getElementById('th-ca').classList.add('on');
+    document.getElementById('th-cb').classList.add('on');
+    var pA=buildPrompt(aName,document.getElementById('ca-type').value,aDesc,document.getElementById('ca-ret').value,document.getElementById('ca-min').value,document.getElementById('ca-flags').value,'single');
+    var pB=buildPrompt(bName,document.getElementById('cb-type').value,bDesc,document.getElementById('cb-ret').value,document.getElementById('cb-min').value,document.getElementById('cb-flags').value,'single');
+    var fp={classList:{add:function(){},remove:function(){}},id:'fp'};
+    await Promise.all([
+      streamTo(pA,'rb-ca',fp,'th-ca',null,null,null),
+      streamTo(pB,'rb-cb',fp,'th-cb',null,null,null)
+    ]);
+    btn.disabled=false;btn.innerHTML='⚡ Compare Both Deals with AI';
+  }
+}
+
+// ===== UTILITIES =====
+function copyText(id){navigator.clipboard.writeText(document.getElementById(id).innerText).then(function(){showToast('Report copied to clipboard');});}
+
+function exportPDF(mode){
+  var content='',title='';
+  if(mode==='single'){content=document.getElementById('rb-single').innerText;title=document.getElementById('s-name').value||'Investment Analysis';}
+  else if(mode==='upload'){content=document.getElementById('rb-upload').innerText;title=document.getElementById('u-name').value||'Document Analysis';}
+  else if(mode==='compare'){
+    var a=document.getElementById('ca-name').value||'Deal A',b=document.getElementById('cb-name').value||'Deal B';
+    content='=== '+a+' ===\n\n'+document.getElementById('rb-ca').innerText+'\n\n=== '+b+' ===\n\n'+document.getElementById('rb-cb').innerText;
+    title=a+' vs '+b;
+  }
+  if(!content.trim()||content.includes('AI Ready')||content.includes('Analyzer Ready')){showToast('Run an analysis first before exporting');return;}
+  var jspdf=window.jspdf;
+  var doc=new jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  var pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight(),m=20,mw=pw-m*2;
+  var y=m;
+  doc.setFillColor(250,248,245);doc.rect(0,0,pw,ph,'F');
+  doc.setFillColor(184,134,11);doc.rect(0,0,pw,6,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(28,26,21);
+  doc.text('AltShield',m,y+14);
+  doc.setFontSize(10);doc.setTextColor(107,101,88);
+  doc.text('Alternative Investment Fraud & Risk Intelligence',m,y+22);
+  doc.setFontSize(8);doc.text('Generated: '+new Date().toLocaleString(),m,y+29);
+  y+=40;doc.setDrawColor(221,216,206);doc.setLineWidth(.4);doc.line(m,y,pw-m,y);y+=9;
+  doc.setFontSize(14);doc.setTextColor(184,134,11);doc.setFont('helvetica','bold');
+  var tl=doc.splitTextToSize(title,mw);doc.text(tl,m,y);y+=tl.length*6+5;
+  function addLine(text,size,color,bold,indent){
+    if(y>ph-20){doc.addPage();doc.setFillColor(250,248,245);doc.rect(0,0,pw,ph,'F');y=m;}
+    doc.setFontSize(size||9);doc.setTextColor(color||[58,56,48]);doc.setFont('helvetica',bold?'bold':'normal');
+    var ls=doc.splitTextToSize(text,mw-(indent||0));doc.text(ls,m+(indent||0),y);y+=ls.length*(size||9)*.42+1.5;
+  }
+  var lines=content.split('\n');
+  for(var i=0;i<lines.length;i++){
+    var t=lines[i].trim();if(!t)continue;
+    if(t.match(/^[🎯🔍⚠✅📊🛡📋]/)){y+=3;addLine(t,11,[184,134,11],true,0);y+=2;}
+    else if(t.startsWith('===')&&t.endsWith('===')){y+=4;doc.setFillColor(237,234,224);doc.rect(m,y-4,mw,12,'F');addLine(t.replace(/===/g,'').trim(),11,[184,134,11],true,2);y+=2;}
+    else if(t.match(/^(Fraud Risk|Liquidity Risk|Operator Risk|Regulatory Risk)/)){addLine(t,9,[58,56,48],true,0);}
+    else if(t.startsWith('•')||t.startsWith('›')){addLine(t.replace(/^[•›]\s*/,'• '),8,[107,101,88],false,4);}
+    else{addLine(t,9,[58,56,48],false,0);}
+  }
+  var total=doc.internal.getNumberOfPages();
+  for(var p=1;p<=total;p++){doc.setPage(p);doc.setFontSize(7);doc.setTextColor(156,149,136);doc.text('AltShield — Confidential Analysis Report · altshield.ai',m,ph-8);doc.text('Page '+p+' / '+total,pw-m-14,ph-8);doc.setFillColor(184,134,11);doc.rect(0,ph-1.5,pw,1.5,'F');}
+  doc.save('AltShield-'+title.replace(/[^a-z0-9]/gi,'-').substring(0,40)+'.pdf');
+  showToast('PDF report downloaded');
+}
+
+// ============================================================
+// ===== WATCHLIST FEATURE =====
+// ============================================================
+function getWatchlist(){try{return JSON.parse(localStorage.getItem('as_watchlist')||'[]');}catch(e){return[];}}
+function saveWatchlist(list){try{localStorage.setItem('as_watchlist',JSON.stringify(list));}catch(e){}}
+
+function openAddWatchlist(){
+  document.getElementById('wl-add-form').style.display='block';
+  document.getElementById('wl-name').focus();
+  document.getElementById('wl-add-form').scrollIntoView({behavior:'smooth'});
+}
+function closeAddWatchlist(){
+  document.getElementById('wl-add-form').style.display='none';
+  document.getElementById('wl-name').value='';
+  document.getElementById('wl-type').value='';
+  document.getElementById('wl-notes').value='';
+}
+
+async function addToWatchlist(){
+  var name=document.getElementById('wl-name').value.trim();
+  var type=document.getElementById('wl-type').value;
+  var notes=document.getElementById('wl-notes').value.trim();
+  if(!name){showToast('Please enter a fund or operator name');return;}
+  var btn=document.getElementById('wl-add-btn');
+  btn.disabled=true;btn.textContent='⏳ Scoring...';
+  var entry={id:'wl_'+Date.now(),name:name,type:type||'Unknown',notes:notes,score:null,risk:'',added:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
+  var list=getWatchlist();list.unshift(entry);saveWatchlist(list);
+  closeAddWatchlist();renderWatchlist();
+  // Score it with AI if key available
+  if(apiKey&&apiKey.startsWith('sk-ant-')){
+    await scoreWatchlistEntry(entry.id);
+  }
+  btn.disabled=false;btn.textContent='📌 Add to Watchlist';
+  showToast(name+' added to watchlist');
+}
+
+async function scoreWatchlistEntry(id){
+  var list=getWatchlist();
+  var entry=list.find(function(e){return e.id===id;});
+  if(!entry)return;
+  var card=document.getElementById('wlcard_'+id);
+  if(card){var sa=card.querySelector('.wl-analyzing');if(sa)sa.style.display='flex';}
+  var prompt='You are AltShield fraud analyst. Score this investment operator for fraud risk.\nName: '+entry.name+'\nType: '+entry.type+'\nNotes: '+(entry.notes||'No additional details')+'\n\nRespond ONLY with a JSON object like: {"score":72,"risk":"HIGH","summary":"One sentence verdict."}\nScore 0-100. Risk: LOW, MEDIUM, HIGH, or CRITICAL. No markdown.';
+  try{
+    var txt=await callAI(prompt,200);
+    var clean=txt.replace(/```json|```/g,'').trim();
+    var parsed=JSON.parse(clean);
+    var updated=getWatchlist();
+    var idx=updated.findIndex(function(e){return e.id===id;});
+    if(idx>-1){updated[idx].score=parsed.score;updated[idx].risk=parsed.risk;updated[idx].summary=parsed.summary;saveWatchlist(updated);}
+    renderWatchlist();
+  }catch(e){console.log('Score error',e);}
+}
+
+function removeFromWatchlist(id){
+  var list=getWatchlist().filter(function(e){return e.id!==id;});
+  saveWatchlist(list);renderWatchlist();showToast('Removed from watchlist');
+}
+
+async function reScoreEntry(id){
+  showToast('Re-scoring…');
+  await scoreWatchlistEntry(id);
+}
+
+function renderWatchlist(){
+  var list=getWatchlist();
+  var empty=document.getElementById('wl-empty');
+  var grid=document.getElementById('wl-grid');
+  if(!list.length){empty.style.display='block';grid.innerHTML='';return;}
+  empty.style.display='none';
+  grid.innerHTML=list.map(function(e){
+    var scoreColor=!e.score?'var(--ink3)':e.score>=65?'var(--red)':e.score>=35?'var(--amber)':'var(--green)';
+    var tagCls=!e.risk?'ac':e.risk==='LOW'?'lo':e.risk==='MEDIUM'||e.risk==='MED'?'md':'hi';
+    var tagTxt=e.risk||'Pending';
+    var scoreDisp=e.score!=null?e.score:'—';
+    return '<div class="wl-card" id="wlcard_'+e.id+'">'+
+      '<div class="wl-card-top">'+
+        '<div class="wl-card-name">'+e.name+'</div>'+
+        '<div class="wl-card-type">'+e.type+'</div>'+
+        '<div class="wl-score-row">'+
+          '<div class="wl-score-num" style="color:'+scoreColor+'">'+scoreDisp+'</div>'+
+          '<span class="tag '+tagCls+'">'+tagTxt+'</span>'+
+          '<div class="wl-analyzing" style="display:none;"><div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>Scoring…</div>'+
+        '</div>'+
+        (e.summary?'<div class="wl-card-notes">'+e.summary+'</div>':'')+(e.notes&&!e.summary?'<div class="wl-card-notes">'+e.notes+'</div>':'')+
+      '</div>'+
+      '<div class="wl-card-bottom">'+
+        '<div class="wl-card-date">Added '+e.added+'</div>'+
+        '<div style="display:flex;gap:6px">'+
+          '<button class="btn btn-g" style="font-size:10px;padding:3px 9px" onclick="reScoreEntry(\''+e.id+'\')">↺ Rescore</button>'+
+          '<button class="btn btn-g" style="font-size:10px;padding:3px 9px" onclick="go(\'analyzer\')">AI Deep Dive</button>'+
+          '<button class="btn btn-d" style="font-size:10px;padding:3px 9px" onclick="removeFromWatchlist(\''+e.id+'\')">✕</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ============================================================
+// ===== COMPLIANCE CHECKLIST FEATURE =====
+// ============================================================
+var clTemplates={
+  pe:{type:'Private Equity',name:'',desc:'SEC-registered PE fund, 2/20 fees, 7-year lock-up, Delaware LP structure, quarterly reporting'},
+  re:{type:'Real Estate / REIT',name:'',desc:'Real estate fund targeting multifamily properties, Reg D 506(b), 5-year lock-up, gating provisions on redemptions'},
+  vc:{type:'Venture Capital',name:'',desc:'Early-stage venture fund, SAFE agreements, 10-year fund life, 2/20 carry, SBIC license'},
+  hedge:{type:'Hedge Fund',name:'',desc:'Long/short equity hedge fund, Cayman structure, 1-year lock-up, monthly redemptions with 30-day notice, prime brokerage'},
+  crypto:{type:'Cryptocurrency / Digital Assets',name:'',desc:'Digital asset fund, Cayman Islands entity, crypto-specific custody, quarterly NAV, BitLicense or equivalent'}
+};
+function setClTemplate(k){
+  var t=clTemplates[k];if(!t)return;
+  document.getElementById('cl-type').value=t.type;
+  document.getElementById('cl-desc').value=t.desc;
+  document.getElementById('cl-name').value=t.name;
+}
+
+var savedChecklists=[];
+function getSavedChecklists(){try{return JSON.parse(localStorage.getItem('as_checklists')||'[]');}catch(e){return[];}}
+function saveSavedChecklists(list){try{localStorage.setItem('as_checklists',JSON.stringify(list));}catch(e){}}
+
+async function runChecklist(){
+  var type=document.getElementById('cl-type').value;
+  var name=document.getElementById('cl-name').value.trim();
+  var desc=document.getElementById('cl-desc').value.trim();
+  if(!type){showToast('Please select an investment type first');return;}
+  if(!apiKey||!apiKey.startsWith('sk-ant-')){
+    document.getElementById('rb-cl').innerHTML='<div class="err-box"><strong>🔑 API Key Required</strong>Please set your API key in the AI Analyzer tab first.</div>';
+    document.getElementById('rp-cl').classList.add('active');return;
+  }
+  var btn=document.getElementById('cl-btn');
+  var panel=document.getElementById('rp-cl');
+  var body=document.getElementById('rb-cl');
+  var think=document.getElementById('th-cl');
+  btn.disabled=true;btn.textContent='⏳ Generating…';
+  panel.classList.add('active');think.classList.add('on');
+  document.getElementById('ra-cl').classList.remove('on');
+  body.innerHTML='<div id="cl-stream" style="line-height:1.8;color:var(--ink3);font-size:12px;padding:20px 0">⏳ Generating checklist — this takes 15–30 seconds…</div>';
+  var sc=document.getElementById('cl-stream');
+  var prompt='You are AltShield, an expert alternative investment compliance and regulatory analyst.\n\nGenerate a comprehensive REGULATORY DUE DILIGENCE CHECKLIST for this investment.\n\nINVESTMENT TYPE: '+type+'\nFUND NAME: '+(name||'Not specified')+'\nDETAILS: '+(desc||'Standard '+type+' fund')+'\n\nProduce a detailed checklist using this EXACT HTML format. Each checklist item must be clickable (the cl-item divs are interactive checkboxes):\n\n<div class="cl-section">\n<div class="cl-section-title">1. Registration & Regulatory Status</div>\n<div class="cl-item" onclick="toggleCheck(this)">\n  <div class="cl-box"></div>\n  <div class="cl-content">\n    <div class="cl-text"><span class="cl-tag critical">Critical</span> Verify SEC registration or exemption (Form D on EDGAR)</div>\n    <div class="cl-detail">Search SEC EDGAR at efts.sec.gov. Confirm fund has valid Form D or is properly exempt. Any fund raising from US investors must file.</div>\n  </div>\n</div>\n</div>\n\nCreate 5-7 sections specific to '+type+' investments. Each section should have 3-6 checklist items. Tag each item as Critical, Required, or Recommended. Include the specific regulatory body, website, or document to check for each item.\n\nSections should cover: Registration & Regulatory Status, Manager Background & Track Record, Fund Structure & Legal Documents, Financials & Auditing, Fee Structure & Conflicts, Liquidity & Redemption Terms, and any '+type+'-specific checks.\n\nMake every item specific, actionable, and linked to a real regulatory requirement. This is a professional compliance tool.';
+  try{
+    var full=await callAI(prompt,2500);
+    sc.innerHTML=full;
+    var items=body.querySelectorAll('.cl-item');
+    if(items.length){
+      var prog='<div class="cl-progress"><div style="font-size:11px;font-weight:600;color:var(--ink2);">Progress:</div><div class="cl-prog-bar"><div class="cl-prog-fill" id="cl-prog-fill" style="width:0%"></div></div><div class="cl-prog-text" id="cl-prog-text">0 / '+items.length+' completed</div></div>';
+      body.insertAdjacentHTML('afterbegin',prog);
+    }
+    updateChecklistProgress();
+    var cl={id:'cl_'+Date.now(),type:type,name:name||type+' Checklist',html:full,date:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
+    var saved=getSavedChecklists();saved.unshift(cl);if(saved.length>10)saved=saved.slice(0,10);saveSavedChecklists(saved);
+    renderSavedChecklists();
+    document.getElementById('ra-cl').classList.add('on');
+  }catch(err){
+    sc.innerHTML='<div class="err-box"><strong>⚠ Error</strong>Could not generate checklist. Please check your API key and try again.<br><br><span style="font-size:11px;color:var(--ink3)">'+err.message+'</span></div>';
+  }finally{
+    panel.classList.remove('active');think.classList.remove('on');
+    btn.disabled=false;btn.textContent='✅ Generate Compliance Checklist';
+  }
+}
+
+function toggleCheck(el){
+  el.classList.toggle('done');
+  var box=el.querySelector('.cl-box');
+  if(el.classList.contains('done'))box.classList.add('checked');else box.classList.remove('checked');
+  updateChecklistProgress();
+}
+
+function updateChecklistProgress(){
+  var items=document.querySelectorAll('#rb-cl .cl-item');
+  var done=document.querySelectorAll('#rb-cl .cl-item.done');
+  var fill=document.getElementById('cl-prog-fill');
+  var txt=document.getElementById('cl-prog-text');
+  if(!items.length||!fill)return;
+  var pct=Math.round((done.length/items.length)*100);
+  fill.style.width=pct+'%';
+  txt.textContent=done.length+' / '+items.length+' completed';
+  if(pct===100){fill.style.background='var(--green)';txt.style.color='var(--green)';txt.textContent='✓ All items completed!';}
+}
+
+function renderSavedChecklists(){
+  var saved=getSavedChecklists();
+  var grid=document.getElementById('saved-checklists-grid');
+  if(!grid)return;
+  var plusCard='<div class="card" style="border-style:dashed;text-align:center;padding:24px;cursor:pointer;color:var(--ink3)" onclick="document.querySelector(\'#cl-btn\').scrollIntoView({behavior:\'smooth\'})"><div style="font-size:24px;margin-bottom:8px">+</div><div style="font-size:12px;font-weight:500">Generate a new checklist</div></div>';
+  if(!saved.length){grid.innerHTML=plusCard;return;}
+  grid.innerHTML=saved.map(function(c){
+    return '<div class="sc-card" onclick="loadSavedChecklist(\''+c.id+'\')">'+
+      '<div class="sc-top"><div class="sc-name">'+c.name+'</div><div class="sc-type">'+c.type+'</div></div>'+
+      '<div class="sc-bottom"><div style="font-size:10px;color:var(--ink4)">'+c.date+'</div>'+
+      '<button class="btn btn-d" style="font-size:10px;padding:3px 9px" onclick="event.stopPropagation();deleteSavedChecklist(\''+c.id+'\')">✕ Remove</button></div>'+
+    '</div>';
+  }).join('')+plusCard;
+}
+
+function loadSavedChecklist(id){
+  var saved=getSavedChecklists();
+  var cl=saved.find(function(c){return c.id===id;});
+  if(!cl)return;
+  document.getElementById('cl-type').value=cl.type;
+  document.getElementById('cl-name').value=cl.name;
+  var body=document.getElementById('rb-cl');
+  body.innerHTML=cl.html;
+  var items=body.querySelectorAll('.cl-item');
+  if(items.length){
+    body.insertAdjacentHTML('afterbegin','<div class="cl-progress"><div style="font-size:11px;font-weight:600;color:var(--ink2);">Progress:</div><div class="cl-prog-bar"><div class="cl-prog-fill" id="cl-prog-fill" style="width:0%"></div></div><div class="cl-prog-text" id="cl-prog-text">0 / '+items.length+' completed</div></div>');
+  }
+  document.getElementById('rp-cl').classList.add('active');
+  document.getElementById('ra-cl').classList.add('on');
+  showToast('Checklist loaded');
+}
+
+function deleteSavedChecklist(id){
+  var saved=getSavedChecklists().filter(function(c){return c.id!==id;});
+  saveSavedChecklists(saved);renderSavedChecklists();showToast('Checklist removed');
+}
+
+function exportChecklistPDF(){
+  var content=document.getElementById('rb-cl').innerText;
+  var type=document.getElementById('cl-type').value||'Investment';
+  var name=document.getElementById('cl-name').value||type+' Compliance Checklist';
+  if(!content||content.includes('Checklist Generator Ready')){showToast('Generate a checklist first');return;}
+  var jspdf=window.jspdf;
+  var doc=new jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  var pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight(),m=20,mw=pw-m*2;
+  var y=m;
+  doc.setFillColor(250,248,245);doc.rect(0,0,pw,ph,'F');
+  doc.setFillColor(184,134,11);doc.rect(0,0,pw,6,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(28,26,21);
+  doc.text('AltShield',m,y+14);
+  doc.setFontSize(10);doc.setTextColor(107,101,88);
+  doc.text('Regulatory Due Diligence Checklist',m,y+22);
+  doc.setFontSize(8);doc.text('Generated: '+new Date().toLocaleString(),m,y+29);
+  y+=40;doc.setDrawColor(221,216,206);doc.setLineWidth(.4);doc.line(m,y,pw-m,y);y+=9;
+  doc.setFontSize(13);doc.setTextColor(184,134,11);doc.setFont('helvetica','bold');
+  var tl=doc.splitTextToSize(name,mw);doc.text(tl,m,y);y+=tl.length*6+4;
+  doc.setFontSize(9);doc.setTextColor(107,101,88);doc.setFont('helvetica','normal');
+  doc.text('Investment Type: '+type,m,y);y+=8;
+  function addLine(text,size,color,bold,indent){
+    if(y>ph-20){doc.addPage();doc.setFillColor(250,248,245);doc.rect(0,0,pw,ph,'F');y=m;}
+    doc.setFontSize(size||9);doc.setTextColor(color||[58,56,48]);doc.setFont('helvetica',bold?'bold':'normal');
+    var ls=doc.splitTextToSize(text,mw-(indent||0));doc.text(ls,m+(indent||0),y);y+=ls.length*(size||9)*.42+1.5;
+  }
+  var lines=content.split('\n');
+  for(var i=0;i<lines.length;i++){
+    var t=lines[i].trim();if(!t||t.includes('completed'))continue;
+    if(t.match(/^\d+\./)){y+=3;addLine(t,11,[184,134,11],true,0);y+=1;}
+    else if(t.startsWith('□')||t.startsWith('☑')||t.startsWith('✓')){addLine('□ '+t.replace(/^[□☑✓]\s*/,''),9,[58,56,48],false,4);}
+    else if(t.length>3){addLine(t,9,[107,101,88],false,6);}
+  }
+  var total=doc.internal.getNumberOfPages();
+  for(var p=1;p<=total;p++){doc.setPage(p);doc.setFontSize(7);doc.setTextColor(156,149,136);doc.text('AltShield — Regulatory Due Diligence Checklist · Confidential',m,ph-8);doc.text('Page '+p+' / '+total,pw-m-14,ph-8);doc.setFillColor(184,134,11);doc.rect(0,ph-1.5,pw,1.5,'F');}
+  doc.save('AltShield-Compliance-Checklist-'+type.replace(/[^a-z0-9]/gi,'-')+'.pdf');
+  showToast('Checklist PDF downloaded');
+}
+</script>
+<!-- WELCOME OVERLAY — shown only on first visit -->
+<div id="welcome-ov" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(28,26,21,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--white);border:1px solid var(--border2);border-radius:16px;padding:36px 40px;max-width:540px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeUp .3s ease;">
+    <div style="width:52px;height:52px;background:var(--gold);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:20px;font-weight:800;color:#fff;margin-bottom:18px;">AS</div>
+    <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--ink);margin-bottom:8px;letter-spacing:-.5px;">Welcome to AltShield</div>
+    <div style="font-size:13px;color:var(--ink3);line-height:1.8;margin-bottom:22px;">AI-powered fraud detection for alternative investments. Here is how to get started in 3 steps:</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:var(--warm);border-radius:8px;border:1px solid var(--border);">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--gold);color:#fff;font-family:'Playfair Display',serif;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">1</div>
+        <div><div style="font-weight:700;color:var(--ink);font-size:12px;margin-bottom:2px;">Get your free API key</div><div style="font-size:11px;color:var(--ink3);line-height:1.6;">Go to <strong>⚡ AI Analyzer</strong> tab → follow the setup instructions. Takes 2 minutes. Free.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:var(--warm);border-radius:8px;border:1px solid var(--border);">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--gold);color:#fff;font-family:'Playfair Display',serif;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">2</div>
+        <div><div style="font-weight:700;color:var(--ink);font-size:12px;margin-bottom:2px;">Try a quick example first</div><div style="font-size:11px;color:var(--ink3);line-height:1.6;">In the AI Analyzer, click <strong>"Pig Butchering"</strong> or <strong>"Suspected Ponzi"</strong> to load a demo. Then click Run Analysis to see the AI in action.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:var(--warm);border-radius:8px;border:1px solid var(--border);">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--gold);color:#fff;font-family:'Playfair Display',serif;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">3</div>
+        <div><div style="font-weight:700;color:var(--ink);font-size:12px;margin-bottom:2px;">Analyze a real investment you have seen</div><div style="font-size:11px;color:var(--ink3);line-height:1.6;">Paste details from any fund pitch, investment email, or WhatsApp message. The AI will flag fraud signals and give you a 0–100 risk score.</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="dismissWelcome()" style="width:100%;padding:13px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em;">Get Started →</button>
+      <div style="font-size:10px;color:var(--ink4);text-align:center;">This message will not show again on this browser.</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK BUTTON — fixed bottom left -->
+<div id="feedback-btn" style="position:fixed;bottom:24px;left:20px;z-index:300;cursor:pointer;" onclick="openFeedback()">
+  <div style="background:var(--ink);color:#fff;border-radius:30px;padding:9px 16px;font-size:11px;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;display:flex;align-items:center;gap:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:all .18s;">
+    <span>💬</span> Share Feedback
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div id="feedback-modal-ov" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(28,26,21,.6);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--white);border:1px solid var(--border2);border-radius:14px;padding:28px 32px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:fadeUp .2s ease;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--ink);">Your Feedback</div>
+      <button onclick="closeFeedback()" style="background:none;border:none;font-size:22px;color:var(--ink3);cursor:pointer;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;" onmouseover="this.style.background='var(--warm)'" onmouseout="this.style.background='none'">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:18px;line-height:1.7;">Your experience with AltShield matters. Please share what worked, what did not, and any investment you analysed.</div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:6px;">Overall rating</div>
+      <div id="star-rating" style="display:flex;gap:6px;">
+        <span class="star" onclick="setStar(1)" style="font-size:26px;cursor:pointer;transition:transform .1s;">☆</span>
+        <span class="star" onclick="setStar(2)" style="font-size:26px;cursor:pointer;transition:transform .1s;">☆</span>
+        <span class="star" onclick="setStar(3)" style="font-size:26px;cursor:pointer;transition:transform .1s;">☆</span>
+        <span class="star" onclick="setStar(4)" style="font-size:26px;cursor:pointer;transition:transform .1s;">☆</span>
+        <span class="star" onclick="setStar(5)" style="font-size:26px;cursor:pointer;transition:transform .1s;">☆</span>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:6px;">What did you analyse? (optional)</div>
+      <input id="fb-deal" placeholder="e.g. A real estate fund, a crypto pitch, a WhatsApp investment offer..." style="width:100%;background:var(--warm);border:1px solid var(--border);border-radius:7px;padding:9px 13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:var(--ink);outline:none;">
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:6px;">Was the AI analysis useful? What did it find?</div>
+      <textarea id="fb-useful" placeholder="Tell us what the AI flagged, whether it was accurate, how long it would have taken you manually..." style="width:100%;background:var(--warm);border:1px solid var(--border);border-radius:7px;padding:9px 13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:var(--ink);outline:none;resize:vertical;min-height:80px;line-height:1.6;"></textarea>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:6px;">What would make AltShield better?</div>
+      <textarea id="fb-improve" placeholder="Any features missing, anything confusing, or anything you wished it could do..." style="width:100%;background:var(--warm);border:1px solid var(--border);border-radius:7px;padding:9px 13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:var(--ink);outline:none;resize:vertical;min-height:65px;line-height:1.6;"></textarea>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:6px;">Your name &amp; role (optional — for testimonial)</div>
+      <input id="fb-name" placeholder="e.g. Priya S., Chartered Accountant, Mumbai" style="width:100%;background:var(--warm);border:1px solid var(--border);border-radius:7px;padding:9px 13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:var(--ink);outline:none;">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="submitFeedback()" style="flex:1;padding:11px;background:var(--gold);color:#fff;border:none;border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Submit Feedback</button>
+      <button onclick="closeFeedback()" style="padding:11px 18px;background:var(--warm);border:1px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:var(--ink3);cursor:pointer;">Cancel</button>
+    </div>
+    <div id="fb-thanks" style="display:none;margin-top:12px;padding:12px;background:var(--green-l);border:1px solid rgba(26,107,64,.2);border-radius:7px;font-size:12px;color:var(--green);font-weight:600;text-align:center;">✓ Thank you! Your feedback has been saved.</div>
+  </div>
+</div>
+
+<script>
+// ===== WELCOME =====
+function dismissWelcome(){
+  document.getElementById('welcome-ov').style.display='none';
+  try{localStorage.setItem('as_welcomed','1');}catch(e){}
+}
+
+// ===== FEEDBACK =====
+var userStar=0;
+function openFeedback(){document.getElementById('feedback-modal-ov').style.display='flex';}
+function closeFeedback(){document.getElementById('feedback-modal-ov').style.display='none';}
+function setStar(n){
+  userStar=n;
+  document.querySelectorAll('.star').forEach(function(s,i){
+    s.textContent=i<n?'★':'☆';
+    s.style.color=i<n?'var(--gold)':'var(--ink4)';
+  });
+}
+function submitFeedback(){
+  var data={
+    rating:userStar,
+    deal:document.getElementById('fb-deal').value,
+    useful:document.getElementById('fb-useful').value,
+    improve:document.getElementById('fb-improve').value,
+    name:document.getElementById('fb-name').value,
+    date:new Date().toLocaleString()
+  };
+  try{
+    var all=JSON.parse(localStorage.getItem('as_feedback')||'[]');
+    all.push(data);
+    localStorage.setItem('as_feedback',JSON.stringify(all));
+  }catch(e){}
+  // Copy to clipboard for easy sharing
+  var txt='AltShield Feedback\n==================\nDate: '+data.date+'\nRating: '+data.rating+'/5 stars\nDeal analysed: '+data.deal+'\nUsefulness: '+data.useful+'\nImprovement: '+data.improve+'\nUser: '+data.name;
+  navigator.clipboard.writeText(txt).catch(function(){});
+  document.getElementById('fb-thanks').style.display='block';
+  setTimeout(function(){
+    closeFeedback();
+    document.getElementById('fb-thanks').style.display='none';
+    showToast('Feedback saved — also copied to clipboard!');
+  },2000);
+}
+</script>
+
+</body>
