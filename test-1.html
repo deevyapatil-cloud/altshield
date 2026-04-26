@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AltShield API Test v2</title>
+<style>
+body{font-family:sans-serif;max-width:640px;margin:40px auto;padding:20px;background:#faf8f5;}
+input{width:100%;padding:10px;margin:8px 0;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;}
+button{padding:9px 14px;background:#b8860b;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;margin:3px 2px;}
+#log{margin-top:16px;padding:14px;background:#fff;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:11px;white-space:pre-wrap;min-height:120px;line-height:1.7;max-height:400px;overflow-y:auto;}
+.ok{color:#1a6b40;font-weight:bold;}.err{color:#b83232;font-weight:bold;}.info{color:#6b6558;}
+</style>
+</head>
+<body>
+<h2>🛡 AltShield — API Test v2</h2>
+<input id="key" type="password" placeholder="Paste your API key (sk-ant-...)">
+<div style="display:flex;flex-wrap:wrap;gap:4px;margin:8px 0">
+  <button onclick="t1()">1: Direct</button>
+  <button onclick="t2()">2: corsproxy /?url</button>
+  <button onclick="t3()">3: corsproxy plain</button>
+  <button onclick="t4()">4: thingproxy</button>
+  <button onclick="t5()">5: allorigins</button>
+  <button onclick="tAll()" style="background:#1a6b40">▶ Run ALL</button>
+  <button onclick="clearLog()" style="background:#888">Clear</button>
+</div>
+<div id="log">Ready — paste your key and click Run ALL</div>
+<script>
+function log(msg,cls){var d=document.getElementById('log');if(d.textContent.includes('Ready'))d.innerHTML='';var s=document.createElement('span');if(cls)s.className=cls;s.textContent=msg+'\n';d.appendChild(s);d.scrollTop=d.scrollHeight;}
+function clearLog(){document.getElementById('log').innerHTML='';}
+var URL='https://api.anthropic.com/v1/messages';
+var BODY=JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:10,stream:false,messages:[{role:'user',content:'Say OK'}]});
+function hdrs(k){return{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};}
+async function run(name,fn){
+  var k=document.getElementById('key').value.trim();
+  if(!k){log('Paste API key first','err');return;}
+  log('--- '+name+' ---','info');
+  try{
+    var r=await fn(k);log('Status: '+r.status);
+    var t=await r.text();log('Body: '+t.substring(0,120));
+    if(r.status===200)log('✓ WORKS!','ok');
+    else log('✗ Failed','err');
+  }catch(e){log('✗ Blocked: '+e.message,'err');}
+}
+async function t1(){await run('Direct',k=>fetch(URL,{method:'POST',headers:hdrs(k),body:BODY}));}
+async function t2(){await run('corsproxy /?url=',k=>fetch('https://corsproxy.io/?url='+encodeURIComponent(URL),{method:'POST',headers:hdrs(k),body:BODY}));}
+async function t3(){await run('corsproxy plain',k=>fetch('https://corsproxy.io/?'+URL,{method:'POST',headers:hdrs(k),body:BODY}));}
+async function t4(){await run('thingproxy',k=>fetch('https://thingproxy.freeboard.io/fetch/'+URL,{method:'POST',headers:hdrs(k),body:BODY}));}
+async function t5(){await run('allorigins',k=>fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(URL),{method:'POST',headers:hdrs(k),body:BODY}));}
+async function tAll(){clearLog();log('Testing all methods...\n','info');await t1();await t2();await t3();await t4();await t5();log('\nDone.','info');}
+</script>
+</body>
+</html>
